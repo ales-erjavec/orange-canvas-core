@@ -371,6 +371,16 @@ class UserSettingsDialog(QMainWindow):
         box.setLayout(layout)
         form.addRow(self.tr("Help window"), box)
 
+        box = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        cb1 = QCheckBox(self.tr(""),
+                        toolTip=self.tr("Share anonymous usage statistics to improve Orange"))
+        self.bind(cb1, "checked", "error-reporting/send-statistics")
+        layout.addWidget(cb1)
+        box.setLayout(layout)
+        form.addRow(self.tr("Share Anonymous Statistics"), box)
+
         tab.setLayout(form)
 
         # Categories Tab

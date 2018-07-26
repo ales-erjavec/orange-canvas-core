@@ -227,7 +227,13 @@ spec = \
      ("logging/dockable", bool, True, "Allow log window to be docked"),
 
      ("help/open-in-external-browser", bool, False,
-      "Open help in an external browser")
+      "Open help in an external browser"),
+
+     ("error-reporting/send-statistics", bool, False,
+      "Share anonymous usage statistics to improve Orange"),
+
+     ("error-reporting/permission-requested", bool, False,
+      "Has the user already been asked to share statistics"),
      ]
 
 spec = [config_slot(*t) for t in spec]
