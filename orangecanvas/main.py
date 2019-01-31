@@ -413,6 +413,12 @@ def main(argv=None):
         stderr.stream.connect(sys.stderr.write)
         stderr.flushed.connect(sys.stderr.flush)
 
+    from .utils.signalhandler import SignalNotifier
+
+    sn = SignalNotifier.instance()
+    sn.install()
+    sn.sigint.connect(app.closeAllWindows)
+
     with ExitStack() as stack:
         stack.enter_context(closing(stderr))
         stack.enter_context(closing(stdout))
