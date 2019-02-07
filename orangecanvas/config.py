@@ -230,7 +230,7 @@ spec = \
       "Open help in an external browser"),
 
      ("error-reporting/send-statistics", bool, False,
-      "Share anonymous usage statistics to improve Orange"),
+      "Share anonymous usage statistics with developers"),
 
      ("error-reporting/permission-requested", bool, False,
       "Has the user already been asked to share statistics"),

@@ -3,20 +3,15 @@ import platform
 import json
 import logging
 import os
-from Orange.canvas import config
-try:
-    from Orange.version import full_version, release
-except ImportError:
-    full_version = '???'
-    release = True
 
 import requests
 
+from AnyQt.QtCore import QSettings, QCoreApplication
+
+from orangecanvas import config
+
+
 log = logging.getLogger(__name__)
-
-
-statistics_path = os.path.join(config.data_dir(), "usage-statistics.json")
-server_url = os.getenv('ORANGE_STATISTICS_API_URL', "https://orange.biolab.si/usage-statistics")
 
 
 class UsageStatistics:
@@ -56,8 +51,14 @@ class UsageStatistics:
         self.widget_extensions = []
         self.__node_addition_type = None
 
+    @staticmethod
+    def is_enabled():
+        return QSettings().value(
+            "error-reporting/send-statistics", False, type=bool
+        )
+
     def log_node_added(self, widget_name, extended_widget=None):
-        if not config.settings()["error-reporting/send-statistics"]:
+        if not self.is_enabled():
             return
 
         if self.__node_addition_type == UsageStatistics.NodeAddMenu:
@@ -104,8 +105,11 @@ class UsageStatistics:
     def set_node_type(self, addition_type):
         self.__node_addition_type = addition_type
 
-    def send_statistics(self):
-        if release and config.settings()["error-reporting/send-statistics"]:
+    def send_statistics(self, server_url):
+        # type: (str) -> None
+        if self.is_enabled():
+            statistics_path = os.path.join(config.data_dir(),
+                                           "usage-statistics.json")
             if os.path.isfile(statistics_path):
                 with open(statistics_path) as f:
                     data = json.load(f)
@@ -125,17 +129,13 @@ class UsageStatistics:
                     log.warning("Failed to send usage statistics.")
 
     def write_statistics(self):
-        if not release:
-            log.info("Not sending usage statistics (non-release version of Orange detected).")
+        if not self.is_enabled():
             return
 
-        if not config.settings()["error-reporting/send-statistics"]:
-            log.info("Not sending usage statistics (preferences setting).")
-            return
-
+        statistics_path = os.path.join(config.data_dir(), "usage-statistics.json")
         statistics = {
             "Date": str(datetime.now().date()),
-            "Orange Version": full_version,
+            "Orange Version": QCoreApplication.applicationVersion(),
             "Operating System": platform.system() + " " + platform.release(),
             "Session": {
                 "Quick Menu Search": self.quick_menu_actions,
