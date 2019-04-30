@@ -3,7 +3,7 @@ Tests for WidgetsToolBox.
 
 """
 from AnyQt.QtWidgets import QWidget, QHBoxLayout
-from AnyQt.QtCore import QSize
+from AnyQt.QtCore import QSize, QStringListModel, QModelIndex
 
 from ...registry import tests as registry_tests
 from ...registry.qt import QtWidgetRegistry
@@ -60,10 +60,6 @@ class TestWidgetToolBox(test.QAppTestCase):
         self.qWait()
 
     def test_toolbox(self):
-
-        w = QWidget()
-        layout = QHBoxLayout()
-
         reg = registry_tests.small_testing_registry()
         qt_reg = QtWidgetRegistry(reg)
 
@@ -71,23 +67,45 @@ class TestWidgetToolBox(test.QAppTestCase):
 
         model = qt_reg.model()
 
-        one_action = qt_reg.action_for_widget("one")
-
         box = WidgetToolBox()
         box.setModel(model)
+        model.setParent(box)
         box.triggered.connect(triggered_actions.append)
-        layout.addWidget(box)
 
         box.setButtonSize(QSize(50, 80))
-
-        w.setLayout(layout)
-        w.show()
-
-        one_action.trigger()
+        box.show()
 
         box.setButtonSize(QSize(60, 80))
         box.setIconSize(QSize(35, 35))
         box.setTabButtonHeight(40)
         box.setTabIconSize(QSize(30, 30))
 
+        a0, a1 = box.tabAction(0), box.tabAction(1)
+        assert a0.isChecked()
+        a1.trigger()
+        del a1, a0
+        state = box.saveState()
+        # box.setModel(QStringListModel())
+        # box.setModel(model)
+        self.assertTrue(box.restoreState(state))
+        a0, a1 = box.tabAction(0), box.tabAction(1)
+        self.assertTrue(a0.isChecked())
+        self.assertTrue(a1.isChecked())
+        del a0, a1
+        # model.clear()
         self.qWait()
+        box.setModel(QStringListModel())
+
+    def test_toolbox_model(self):
+        box = WidgetToolBox()
+
+        model = QStringListModel()
+        box.setModel(model)
+        self.assertEqual(box.count(), 0)
+        model.insertRow(0, QModelIndex())
+        self.assertEqual(box.count(), 1)
+        box.setModel(QStringListModel())
+        self.assertEqual(box.count(), 0)
+        box.setModel(model)
+        model.insertRow(0, QModelIndex())
+        self.assertEqual(box.count(), 2)

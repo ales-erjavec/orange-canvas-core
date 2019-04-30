@@ -350,9 +350,10 @@ class ToolGrid(QFrame):
         """
         Return the :class:`QToolButton` instance button for `action`.
         """
-        actions = [slot.action for slot in self.__gridSlots]
-        index = actions.index(action)
-        return self.__gridSlots[index].button
+        for slot in self.__gridSlots:
+            if slot.action is action:
+                return slot.button
+        return None
 
     def createButtonForAction(self, action):
         # type: (QAction) -> QToolButton

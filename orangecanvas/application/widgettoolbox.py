@@ -376,6 +376,7 @@ class WidgetToolBox(ToolBox):
             self.__model.dataChanged.disconnect(self.__on_dataChanged)
             self.__model.rowsInserted.disconnect(self.__on_rowsInserted)
             self.__model.rowsRemoved.disconnect(self.__on_rowsRemoved)
+            self.__clear()
 
         self.__model = model
         if self.__model is not None:
@@ -384,6 +385,10 @@ class WidgetToolBox(ToolBox):
             self.__model.rowsRemoved.connect(self.__on_rowsRemoved)
 
         self.__initFromModel(self.__model)
+
+    def __clear(self):
+        for i in reversed(range(self.count())):
+            self.__removeItem(i)
 
     def __initFromModel(self, model):
         # type: (QAbstractItemModel) -> None
@@ -437,6 +442,13 @@ class WidgetToolBox(ToolBox):
             palette.setBrush(QPalette.HighlightedText, highlight_foreground)
         button.setPalette(palette)
 
+    def __removeItem(self, index):
+        # type: (int) -> None
+        grid = self.widget(index)
+        if isinstance(grid, WidgetToolGrid):
+            grid.clear()
+        self.removeItem(index)
+
     def __on_dataChanged(self, topLeft, bottomRight):
         # type: (QModelIndex, QModelIndex) -> None
         parent = topLeft.parent()
@@ -468,4 +480,5 @@ class WidgetToolBox(ToolBox):
         # Only the top level items (categories) are handled here.
         if not parent.isValid():
             for i in range(end, start - 1, -1):
-                self.removeItem(i)
+                self.__removeItem(i)
+
