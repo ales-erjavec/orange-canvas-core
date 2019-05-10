@@ -358,17 +358,15 @@ def main(argv=None):
     if sys.stderr:
         stderr.stream.connect(sys.stderr.write)
         stderr.flushed.connect(sys.stderr.flush)
-    sys.excepthook = ExceptHook(stream=stderr)
-
     with ExitStack() as stack:
         stack.enter_context(redirect_stdout(stdout))
         stack.enter_context(redirect_stderr(stderr))
-        log.info("Entering main event loop.")
         try:
+            sys.excepthook = ExceptHook(stream=stderr)
+            log.info("Entering main event loop.")
             status = app.exec_()
-        except BaseException:
-            log.error("Error in main event loop.", exc_info=True)
-            status = 42
+        finally:
+            sys.excepthook = sys.__excepthook__
 
     del canvas_window
 
