@@ -1,31 +1,19 @@
 """
 
 """
-import sys
 import os
 import logging
 import io
 
+from urllib.parse import urljoin
+from html import parser
 from xml.etree.ElementTree import TreeBuilder, Element
-
-if sys.version_info < (3, ):
-    from urlparse import urljoin
-else:
-    from urllib.parse import urljoin
-
-if sys.version_info < (3, ):
-    from future.backports.html import parser
-else:
-    from html import parser
-
-import six
 
 from AnyQt.QtCore import QObject, QUrl
 
 from AnyQt.QtNetwork import (
     QNetworkAccessManager, QNetworkDiskCache, QNetworkRequest, QNetworkReply
 )
-
 
 from .intersphinx import read_inventory_v1, read_inventory_v2
 
@@ -35,16 +23,13 @@ log = logging.getLogger(__name__)
 
 
 class HelpProvider(QObject):
-    def __init__(self, parent=None):
-        QObject.__init__(self, parent)
-
     def search(self, description):
         raise NotImplementedError
 
 
 class BaseInventoryProvider(HelpProvider):
     def __init__(self, inventory, parent=None):
-        super(BaseInventoryProvider, self).__init__(parent)
+        super().__init__(parent)
         self.inventory = QUrl(inventory)
 
         if not self.inventory.scheme() and not self.inventory.isEmpty():
@@ -58,7 +43,7 @@ class BaseInventoryProvider(HelpProvider):
         cache_dir = os.path.join(cache_dir, "help", type(self).__qualname__)
 
         try:
-            os.makedirs(cache_dir)
+            os.makedirs(cache_dir, exist_ok=True)
         except OSError:
             pass
 
@@ -71,10 +56,19 @@ class BaseInventoryProvider(HelpProvider):
             manager.setCache(cache)
             req = QNetworkRequest(url)
 
+            # Follow redirects (for example http -> https)
+            # If redirects were not followed, the documentation would not be found
+            try:
+                req.setAttribute(QNetworkRequest.FollowRedirectsAttribute, 1)  # from Qt 5.6
+                req.setAttribute(QNetworkRequest.RedirectPolicyAttribute,  # from Qt 5.9
+                                 QNetworkRequest.NoLessSafeRedirectPolicy)
+            except AttributeError:  # if ran with earlier Qt
+                pass
+
             self._reply = manager.get(req)
             manager.finished.connect(self._on_finished)
         else:
-            with open(six.text_type(url.toLocalFile()), "rb") as f:
+            with open(url.toLocalFile(), "rb") as f:
                 self._load_inventory(f)
 
     def _on_finished(self, reply):
@@ -95,7 +89,7 @@ class IntersphinxHelpProvider(BaseInventoryProvider):
     def __init__(self, inventory, target=None, parent=None):
         self.target = target
         self.items = None
-        super(IntersphinxHelpProvider, self).__init__(inventory, parent)
+        super().__init__(inventory, parent)
 
     def search(self, description):
         if description.help_ref:
@@ -140,7 +134,7 @@ class IntersphinxHelpProvider(BaseInventoryProvider):
 
 class SimpleHelpProvider(HelpProvider):
     def __init__(self, parent=None, baseurl=None):
-        super(SimpleHelpProvider).__init__(parent)
+        super().__init__(parent)
         self.baseurl = baseurl
 
     def search(self, description):
@@ -181,7 +175,7 @@ class HtmlIndexProvider(BaseInventoryProvider):
     class _XHTMLParser(parser.HTMLParser):
         # A helper class for parsing XHTML into an xml.etree.ElementTree
         def __init__(self, *args, **kwargs):
-            super(HtmlIndexProvider._XHTMLParser, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
             self.builder = TreeBuilder(element_factory=Element)
 
         def handle_starttag(self, tag, attrs):
@@ -198,7 +192,7 @@ class HtmlIndexProvider(BaseInventoryProvider):
         self.items = {}
         self.xpathquery = xpathquery
 
-        super(HtmlIndexProvider, self).__init__(inventory, parent)
+        super().__init__(inventory, parent)
 
     def _load_inventory(self, stream):
         try:

@@ -7,14 +7,13 @@ The :class:`Scheme` class defines a DAG (Directed Acyclic Graph) workflow.
 
 """
 import types
+from contextlib import ExitStack
 from operator import itemgetter
 from collections import deque
 
 from typing import List, Tuple
 
 import logging
-
-import six
 
 from AnyQt.QtCore import QObject, QCoreApplication
 from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
@@ -86,17 +85,17 @@ class Scheme(QObject):
     annotation_removed = Signal(BaseSchemeAnnotation)
 
     # Signal emitted when the title of scheme changes.
-    title_changed = Signal(six.text_type)
+    title_changed = Signal(str)
 
     # Signal emitted when the description of scheme changes.
-    description_changed = Signal(six.text_type)
+    description_changed = Signal(str)
 
     #: Signal emitted when the associated runtime environment changes
     runtime_env_changed = Signal(str, object, object)
 
     def __init__(self, parent=None, title=None, description=None, env={},
                  **kwargs):
-        QObject.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
 
         self.__title = title or ""
         "Workflow title (empty string by default)."
@@ -153,7 +152,7 @@ class Scheme(QObject):
         """
         return self.__title
 
-    title = Property(six.text_type, fget=title, fset=set_title)
+    title = Property(str, fget=title, fset=set_title)
 
     def set_description(self, description):
         """
@@ -169,7 +168,7 @@ class Scheme(QObject):
         """
         return self.__description
 
-    description = Property(six.text_type, fget=description, fset=set_description)
+    description = Property(str, fget=description, fset=set_description)
 
     def add_node(self, node):
         """
@@ -654,35 +653,37 @@ class Scheme(QObject):
         """
         pass
 
-    def save_to(self, stream, pretty=True, pickle_fallback=False):
+    def save_to(self, stream, pretty=True, **kwargs):
         """
-        Save the scheme as an xml formated file to `stream`
+        Save the scheme as an xml formatted file to `stream`
 
         See also
         --------
-        .scheme_to_ows_stream
-
+        readwrite.scheme_to_ows_stream
         """
-        if isinstance(stream, six.string_types):
-            stream = open(stream, "wb")
+        with ExitStack() as exitstack:
+            if isinstance(stream, str):
+                stream = exitstack.enter_context(open(stream, "wb"))
+            self.sync_node_properties()
+            readwrite.scheme_to_ows_stream(self, stream, pretty, **kwargs)
 
-        self.sync_node_properties()
-
-        readwrite.scheme_to_ows_stream(self, stream, pretty,
-                                       pickle_fallback=pickle_fallback)
-
-    def load_from(self, stream):
+    def load_from(self, stream, *args, **kwargs):
         """
-        Load the scheme from xml formated stream.
+        Load the scheme from xml formatted `stream`.
+
+        Any extra arguments are passed to `readwrite.scheme_load`
+
+        See Also
+        --------
+        readwrite.scheme_load
         """
         if self.__nodes or self.__links or self.__annotations:
-            # TODO: should we clear the scheme and load it.
             raise ValueError("Scheme is not empty.")
 
-        if isinstance(stream, six.string_types):
-            stream = open(stream, "rb")
-        readwrite.scheme_load(self, stream)
-#         parse_scheme(self, stream)
+        with ExitStack() as exitstack:
+            if isinstance(stream, str):
+                stream = exitstack.enter_context(open(stream, "rb"))
+            readwrite.scheme_load(self, stream, *args, **kwargs)
 
     def set_runtime_env(self, key, value):
         """
@@ -708,25 +709,6 @@ class Scheme(QObject):
         will be reflected in it.
         """
         return types.MappingProxyType(self.__env)
-
-    def widget_for_node(self, node):
-        # type: (SchemeNode) -> Optional[QWidget]
-        return None
-
-    def save_widget_geometry_for_node(self, node):
-        # type: (SchemeNode) -> bytes
-        """
-        Save and return the current geometry and state for node
-
-        Parameters
-        ----------
-        node : Scheme
-        """
-        return b''
-
-    def restore_widget_geometry_for_node(self, node, state):
-        # type: (SchemeNode, bytes) -> bool
-        return False
 
     class WindowGroup(types.SimpleNamespace):
         name = ...     # type: str

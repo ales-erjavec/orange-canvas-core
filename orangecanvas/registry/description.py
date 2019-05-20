@@ -6,8 +6,10 @@ Widget meta description classes
 
 import sys
 import copy
+import warnings
+from typing import Union
 
-import six
+from orangecanvas.utils import qualified_name
 
 # Exceptions
 
@@ -177,6 +179,16 @@ def output_channel_from_args(args):
                         "(got {0!r})".format(type(args)))
 
 
+def normalize_type(type_):
+    # type: (Union[type, str]) -> str
+    if isinstance(type_, type):
+        return qualified_name(type_)
+    elif isinstance(type_, str):
+        return type_
+    else:
+        raise TypeError
+
+
 class WidgetDescription(object):
     """
     Description of a widget.
@@ -204,9 +216,9 @@ class WidgetDescription(object):
         A package name where the widget is implemented.
     project_name : str, optional
         The distribution name that provides the widget.
-    inputs : list of :class:`InputSignal`, optional
+    inputs : list of :class:`InputSignal`
         A list of input channels provided by the widget.
-    outputs : list of :class:`OutputSignal`, optional
+    outputs : list of :class:`OutputSignal`
         A list of output channels provided by the widget.
     help : str, optional
         URL or an Resource template of a detailed widget help page.
@@ -229,7 +241,7 @@ class WidgetDescription(object):
         A filename of the widget icon (in relation to the package).
     background : str, optional
         Widget's background color (in the canvas GUI).
-    replaces : list-of-str, optional
+    replaces : list of `str`, optional
         A list of ids this widget replaces (optional).
 
     """
@@ -258,6 +270,21 @@ class WidgetDescription(object):
         self.qualified_name = qualified_name
         self.package = package
         self.project_name = project_name
+        # Copy input/outputs and normalize the type to string.
+        inputs = [
+            InputSignal(
+                i.name, normalize_type(i.type), i.handler, i.flags, i.id,
+                i.doc, i.replaces
+            )
+            for i in inputs
+        ]
+        outputs = [
+            OutputSignal(
+                o.name, normalize_type(o.type), o.flags, o.id, o.doc,
+                o.replaces
+            )
+            for o in outputs
+        ]
         self.inputs = inputs
         self.outputs = outputs
         self.help = help
@@ -282,98 +309,12 @@ class WidgetDescription(object):
 
     @classmethod
     def from_module(cls, module):
-        """
-        Get the widget description from a module.
-
-        The module is inspected for global variables (upper case versions of
-        `WidgetDescription.__init__` parameters).
-
-        Parameters
-        ----------
-        module : `module` or str
-            A module to inspect for widget description. Can be passed
-            as a string (qualified import name).
-
-        """
-        if isinstance(module, six.string_types):
-            module = __import__(module, fromlist=[""])
-
-        module_name = module.__name__.rsplit(".", 1)[-1]
-        if module.__package__:
-            package_name = module.__package__.rsplit(".", 1)[-1]
-        else:
-            package_name = None
-
-        # Default widget class name unless otherwise specified is the
-        # module name, and default category the package name
-        default_cls_name = module_name
-        default_cat_name = package_name if package_name else ""
-
-        widget_cls_name = getattr(module, "WIDGET_CLASS", default_cls_name)
-        try:
-            widget_class = getattr(module, widget_cls_name)
-            name = getattr(module, "NAME")
-        except AttributeError:
-            # The module does not have a widget class implementation or the
-            # widget name.
-            raise WidgetSpecificationError
-
-        qualified_name = "%s.%s" % (module.__name__, widget_cls_name)
-
-        id = getattr(module, "ID", module_name)
-        inputs = getattr(module, "INPUTS", [])
-        outputs = getattr(module, "OUTPUTS", [])
-        category = getattr(module, "CATEGORY", default_cat_name)
-        version = getattr(module, "VERSION", None)
-        description = getattr(module, "DESCRIPTION", name)
-        long_description = getattr(module, "LONG_DESCRIPTION", None)
-        author = getattr(module, "AUTHOR", None)
-        author_email = getattr(module, "AUTHOR_EMAIL", None)
-        maintainer = getattr(module, "MAINTAINER", None)
-        maintainer_email = getattr(module, "MAINTAINER_EMAIL", None)
-        help = getattr(module, "HELP", None)
-        help_ref = getattr(module, "HELP_REF", None)
-        url = getattr(module, "URL", None)
-
-        icon = getattr(module, "ICON", None)
-        priority = getattr(module, "PRIORITY", sys.maxsize)
-        keywords = getattr(module, "KEYWORDS", None)
-        background = getattr(module, "BACKGROUND", None)
-        replaces = getattr(module, "REPLACES", None)
-
-        inputs = list(map(input_channel_from_args, inputs))
-        outputs = list(map(output_channel_from_args, outputs))
-
-        # Convert all signal types into qualified names.
-        # This is to prevent any possible import problems when cached
-        # descriptions are unpickled (the relevant code using this lists
-        # should be able to handle missing types better).
-        for s in inputs + outputs:
-            s.type = "%s.%s" % (s.type.__module__, s.type.__name__)
-
-        return WidgetDescription(
-            name=name,
-            id=id,
-            category=category,
-            version=version,
-            description=description,
-            long_description=long_description,
-            qualified_name=qualified_name,
-            package=module.__package__,
-            inputs=inputs,
-            outputs=outputs,
-            author=author,
-            author_email=author_email,
-            maintainer=maintainer,
-            maintainer_email=maintainer_email,
-            help=help,
-            help_ref=help_ref,
-            url=url,
-            keywords=keywords,
-            priority=priority,
-            icon=icon,
-            background=background,
-            replaces=replaces)
+        warnings.warn(
+            "'WidgetDescription.from_module' is deprecated",
+            PendingDeprecationWarning, stacklevel=2
+        )
+        from .utils import widget_from_module_globals
+        return widget_from_module_globals(module)
 
 
 class CategoryDescription(object):
@@ -444,54 +385,9 @@ class CategoryDescription(object):
 
     @classmethod
     def from_package(cls, package):
-        """
-        Get the CategoryDescription from a package.
-
-        Parameters
-        ----------
-        package : `module` or `str`
-            A package containing the category.
-
-        """
-        if isinstance(package, six.string_types):
-            package = __import__(package, fromlist=[""])
-        package_name = package.__name__
-        qualified_name = package_name
-        default_name = package_name.rsplit(".", 1)[-1]
-
-        name = getattr(package, "NAME", default_name)
-        description = getattr(package, "DESCRIPTION", None)
-        long_description = getattr(package, "LONG_DESCRIPTION", None)
-        author = getattr(package, "AUTHOR", None)
-        author_email = getattr(package, "AUTHOR_EMAIL", None)
-        maintainer = getattr(package, "MAINTAINER", None)
-        maintainer_email = getattr(package, "MAINTAINER_MAIL", None)
-        url = getattr(package, "URL", None)
-        help = getattr(package, "HELP", None)
-        keywords = getattr(package, "KEYWORDS", None)
-        widgets = getattr(package, "WIDGETS", None)
-        priority = getattr(package, "PRIORITY", sys.maxsize - 1)
-        icon = getattr(package, "ICON", None)
-        background = getattr(package, "BACKGROUND", None)
-        hidden = getattr(package, "HIDDEN", None)
-
-        if priority == sys.maxsize - 1 and name.lower() == "prototypes":
-            priority = sys.maxsize
-
-        return CategoryDescription(
-            name=name,
-            qualified_name=qualified_name,
-            description=description,
-            long_description=long_description,
-            help=help,
-            author=author,
-            author_email=author_email,
-            maintainer=maintainer,
-            maintainer_email=maintainer_email,
-            url=url,
-            keywords=keywords,
-            widgets=widgets,
-            priority=priority,
-            icon=icon,
-            background=background,
-            hidden=hidden)
+        warnings.warn(
+            "'CategoryDescription.from_package' is deprecated",
+            DeprecationWarning, stacklevel=2
+        )
+        from .utils import category_from_package_globals
+        return category_from_package_globals(package)

@@ -13,20 +13,10 @@ import unicodedata
 import copy
 
 from operator import attrgetter
+from urllib.parse import urlencode
+from contextlib import ExitStack
 
-from typing import List
-
-if sys.version_info < (3, ):
-    from urllib import urlencode
-else:
-    from urllib.parse import urlencode
-
-if sys.version_info < (3, 3):
-    from contextlib2 import ExitStack
-else:
-    from contextlib import ExitStack
-
-import six
+from typing import List, Optional
 
 from AnyQt.QtWidgets import (
     QWidget, QVBoxLayout, QInputDialog, QMenu, QAction, QActionGroup,
@@ -38,12 +28,9 @@ from AnyQt.QtGui import (
     QKeySequence, QCursor, QFont, QPainter, QPixmap, QColor, QIcon,
     QWhatsThisClickedEvent, QPalette
 )
-
 from AnyQt.QtCore import (
-    Qt, QObject, QEvent, QSignalMapper, QRectF, QCoreApplication,
-    QPoint)
-
-
+    Qt, QObject, QEvent, QSignalMapper, QRectF, QCoreApplication, QPoint
+)
 from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
 
 from .suggestions import Suggestions
@@ -56,13 +43,13 @@ from ..scheme import (
     scheme, signalmanager, Scheme, SchemeNode, SchemeLink,
     BaseSchemeAnnotation, WorkflowEvent
 )
+from ..scheme.widgetmanager import WidgetManager
 from ..canvas.scene import CanvasScene
 from ..canvas.view import CanvasView
 from ..canvas import items
 from . import interactions
 from . import commands
 from . import quickmenu
-from ..utils.qtcompat import qunwrap
 
 log = logging.getLogger(__name__)
 
@@ -74,7 +61,7 @@ class GraphicsSceneFocusEventListener(QGraphicsObject):
     itemFocusedOut = Signal(object)
 
     def __init__(self, parent=None):
-        QGraphicsObject.__init__(self, parent)
+        super().__init__(parent)
         self.setFlag(QGraphicsItem.ItemHasNoContents)
 
     def sceneEventFilter(self, obj, event):
@@ -90,7 +77,7 @@ class GraphicsSceneFocusEventListener(QGraphicsObject):
                 self.itemFocusedOut.emit(obj)
             return True
 
-        return QGraphicsObject.sceneEventFilter(self, obj, event)
+        return super().sceneEventFilter(obj, event)
 
     def boundingRect(self):
         return QRectF()
@@ -117,10 +104,10 @@ class SchemeEditWidget(QWidget):
     selectionChanged = Signal()
 
     #: Document title has changed.
-    titleChanged = Signal(six.text_type)
+    titleChanged = Signal(str)
 
     #: Document path has changed.
-    pathChanged = Signal(six.text_type)
+    pathChanged = Signal(str)
 
     # Quick Menu triggers
     (NoTriggers,
@@ -130,12 +117,15 @@ class SchemeEditWidget(QWidget):
      AnyKey) = [0, 1, 2, 4, 8]
 
     def __init__(self, parent=None, ):
-        QWidget.__init__(self, parent)
+        super().__init__(parent)
 
         self.__modified = False
         self.__registry = None
         self.__scheme = None
-        self.__path = u""
+
+        self.__widgetManager = None  # type: Optional[WidgetManager]
+        self.__path = ""
+
         self.__quickMenuTriggers = SchemeEditWidget.SpaceKey | \
                                    SchemeEditWidget.DoubleClicked
         self.__emptyClickButtons = 0
@@ -205,26 +195,27 @@ class SchemeEditWidget(QWidget):
         self.__statistics = UsageStatistics()
 
     def __setupActions(self):
-        self.__cleanUpAction = \
-            QAction(self.tr("Clean Up"), self,
-                    objectName="cleanup-action",
-                    toolTip=self.tr("Align widget to a grid."),
-                    triggered=self.alignToGrid,
-                    )
+        self.__cleanUpAction = QAction(
+            self.tr("Clean Up"), self,
+            objectName="cleanup-action",
+            shortcut=QKeySequence("Shift+A"),
+            toolTip=self.tr("Align widgets to a grid (Shift+A)"),
+            triggered=self.alignToGrid,
+        )
 
-        self.__newTextAnnotationAction = \
-            QAction(self.tr("Text"), self,
-                    objectName="new-text-action",
-                    toolTip=self.tr("Add a text annotation to the workflow."),
-                    checkable=True,
-                    toggled=self.__toggleNewTextAnnotation,
-                    )
+        self.__newTextAnnotationAction = QAction(
+            self.tr("Text"), self,
+            objectName="new-text-action",
+            toolTip=self.tr("Add a text annotation to the workflow."),
+            checkable=True,
+            toggled=self.__toggleNewTextAnnotation,
+        )
 
         # Create a font size menu for the new annotation action.
         self.__fontMenu = QMenu("Font Size", self)
-        self.__fontActionGroup = group = \
-            QActionGroup(self, exclusive=True,
-                         triggered=self.__onFontSizeTriggered)
+        self.__fontActionGroup = group = QActionGroup(
+            self, exclusive=True, triggered=self.__onFontSizeTriggered
+        )
 
         def font(size):
             f = QFont(self.font())
@@ -232,29 +223,28 @@ class SchemeEditWidget(QWidget):
             return f
 
         for size in [12, 14, 16, 18, 20, 22, 24]:
-            action = QAction("%ipx" % size, group,
-                             checkable=True,
-                             font=font(size))
-
+            action = QAction(
+                "%ipx" % size, group, checkable=True, font=font(size)
+            )
             self.__fontMenu.addAction(action)
 
         group.actions()[2].setChecked(True)
 
         self.__newTextAnnotationAction.setMenu(self.__fontMenu)
 
-        self.__newArrowAnnotationAction = \
-            QAction(self.tr("Arrow"), self,
-                    objectName="new-arrow-action",
-                    toolTip=self.tr("Add a arrow annotation to the workflow."),
-                    checkable=True,
-                    toggled=self.__toggleNewArrowAnnotation,
-                    )
+        self.__newArrowAnnotationAction = QAction(
+            self.tr("Arrow"), self,
+            objectName="new-arrow-action",
+            toolTip=self.tr("Add a arrow annotation to the workflow."),
+            checkable=True,
+            toggled=self.__toggleNewArrowAnnotation,
+        )
 
         # Create a color menu for the arrow annotation action
         self.__arrowColorMenu = QMenu("Arrow Color",)
-        self.__arrowColorActionGroup = group = \
-            QActionGroup(self, exclusive=True,
-                         triggered=self.__onArrowColorTriggered)
+        self.__arrowColorActionGroup = group = QActionGroup(
+            self, exclusive=True, triggered=self.__onArrowColorTriggered
+        )
 
         def color_icon(color):
             icon = QIcon()
@@ -289,28 +279,27 @@ class SchemeEditWidget(QWidget):
         self.__redoAction.setShortcut(QKeySequence.Redo)
         self.__redoAction.setObjectName("redo-action")
 
-        self.__selectAllAction = \
-            QAction(self.tr("Select all"), self,
-                    objectName="select-all-action",
-                    toolTip=self.tr("Select all items."),
-                    triggered=self.selectAll,
-                    shortcut=QKeySequence.SelectAll
-                    )
-
-        self.__openSelectedAction = \
-            QAction(self.tr("Open"), self,
-                    objectName="open-action",
-                    toolTip=self.tr("Open selected widget"),
-                    triggered=self.openSelected,
-                    enabled=False)
-
-        self.__removeSelectedAction = \
-            QAction(self.tr("Remove"), self,
-                    objectName="remove-selected",
-                    toolTip=self.tr("Remove selected items"),
-                    triggered=self.removeSelected,
-                    enabled=False
-                    )
+        self.__selectAllAction = QAction(
+            self.tr("Select all"), self,
+            objectName="select-all-action",
+            toolTip=self.tr("Select all items."),
+            triggered=self.selectAll,
+            shortcut=QKeySequence.SelectAll
+        )
+        self.__openSelectedAction = QAction(
+            self.tr("Open"), self,
+            objectName="open-action",
+            toolTip=self.tr("Open selected widget"),
+            triggered=self.openSelected,
+            enabled=False
+        )
+        self.__removeSelectedAction = QAction(
+            self.tr("Remove"), self,
+            objectName="remove-selected",
+            toolTip=self.tr("Remove selected items"),
+            triggered=self.removeSelected,
+            enabled=False
+        )
 
         shortcuts = [Qt.Key_Delete,
                      Qt.ControlModifier + Qt.Key_Backspace]
@@ -322,74 +311,74 @@ class SchemeEditWidget(QWidget):
 
         self.__removeSelectedAction.setShortcuts(shortcuts)
 
-        self.__renameAction = \
-            QAction(self.tr("Rename"), self,
-                    objectName="rename-action",
-                    toolTip=self.tr("Rename selected widget"),
-                    triggered=self.__onRenameAction,
-                    shortcut=QKeySequence(Qt.Key_F2),
-                    enabled=False)
+        self.__renameAction = QAction(
+            self.tr("Rename"), self,
+            objectName="rename-action",
+            toolTip=self.tr("Rename selected widget"),
+            triggered=self.__onRenameAction,
+            shortcut=QKeySequence(Qt.Key_F2),
+            enabled=False
+        )
 
-        self.__helpAction = \
-            QAction(self.tr("Help"), self,
-                    objectName="help-action",
-                    toolTip=self.tr("Show widget help"),
-                    triggered=self.__onHelpAction,
-                    shortcut=QKeySequence("F1"),
-                    enabled=False,
-                    )
+        self.__helpAction = QAction(
+            self.tr("Help"), self,
+            objectName="help-action",
+            toolTip=self.tr("Show widget help"),
+            triggered=self.__onHelpAction,
+            shortcut=QKeySequence("F1"),
+            enabled=False,
+        )
+        self.__linkEnableAction = QAction(
+            self.tr("Enabled"), self, objectName="link-enable-action",
+            triggered=self.__toggleLinkEnabled, checkable=True,
+        )
 
-        self.__linkEnableAction = \
-            QAction(self.tr("Enabled"), self,
-                    objectName="link-enable-action",
-                    triggered=self.__toggleLinkEnabled,
-                    checkable=True,
-                    )
+        self.__linkRemoveAction = QAction(
+            self.tr("Remove"), self,
+            objectName="link-remove-action",
+            triggered=self.__linkRemove,
+            toolTip=self.tr("Remove link."),
+        )
 
-        self.__linkRemoveAction = \
-            QAction(self.tr("Remove"), self,
-                    objectName="link-remove-action",
-                    triggered=self.__linkRemove,
-                    toolTip=self.tr("Remove link."),
-                    )
+        self.__nodeInsertAction = QAction(
+            self.tr("Insert Widget"), self,
+            objectName="node-insert-action",
+            triggered=self.__nodeInsert,
+            toolTip=self.tr("Insert widget."),
+        )
 
-        self.__nodeInsertAction = \
-            QAction(self.tr("Insert Widget"), self,
-                    objectName="node-insert-action",
-                    triggered=self.__nodeInsert,
-                    toolTip=self.tr("Insert widget."),
-                    )
+        self.__linkResetAction = QAction(
+            self.tr("Reset Signals"), self,
+            objectName="link-reset-action",
+            triggered=self.__linkReset,
+        )
+        self.__duplicateSelectedAction = QAction(
+            self.tr("Duplicate Selected"), self,
+            objectName="duplicate-action",
+            enabled=False,
+            shortcut=QKeySequence(Qt.ControlModifier + Qt.Key_D),
+            triggered=self.__duplicateSelected,
+        )
 
-        self.__linkResetAction = \
-            QAction(self.tr("Reset Signals"), self,
-                    objectName="link-reset-action",
-                    triggered=self.__linkReset,
-                    )
-
-        self.__duplicateSelectedAction = \
-            QAction(self.tr("Duplicate Selected"), self,
-                    objectName="duplicate-action",
-                    enabled=False,
-                    shortcut=QKeySequence(Qt.ControlModifier + Qt.Key_D),
-                    triggered=self.__duplicateSelected,
-                    )
-
-        self.addActions([self.__newTextAnnotationAction,
-                         self.__newArrowAnnotationAction,
-                         self.__linkEnableAction,
-                         self.__linkRemoveAction,
-                         self.__nodeInsertAction,
-                         self.__linkResetAction,
-                         self.__duplicateSelectedAction])
+        self.addActions([
+            self.__newTextAnnotationAction,
+            self.__newArrowAnnotationAction,
+            self.__linkEnableAction,
+            self.__linkRemoveAction,
+            self.__nodeInsertAction,
+            self.__linkResetAction,
+            self.__duplicateSelectedAction
+        ])
 
         # Actions which should be disabled while a multistep
         # interaction is in progress.
-        self.__disruptiveActions = \
-                [self.__undoAction,
-                 self.__redoAction,
-                 self.__removeSelectedAction,
-                 self.__selectAllAction,
-                 self.__duplicateSelectedAction]
+        self.__disruptiveActions = [
+            self.__undoAction,
+            self.__redoAction,
+            self.__removeSelectedAction,
+            self.__selectAllAction,
+            self.__duplicateSelectedAction
+        ]
 
         #: Top 'Window Groups' action
         self.__windowGroupsAction = QAction(
@@ -539,6 +528,7 @@ class SchemeEditWidget(QWidget):
         """
         Return a list of actions that can be inserted into a toolbar.
         At the moment these are:
+
             - 'Zoom in' action
             - 'Zoom out' action
             - 'Zoom Reset' action
@@ -675,7 +665,7 @@ class SchemeEditWidget(QWidget):
 
         """
         if self.__path != path:
-            self.__path = six.text_type(path)
+            self.__path = path
             self.pathChanged.emit(self.__path)
 
     def path(self):
@@ -696,6 +686,7 @@ class SchemeEditWidget(QWidget):
                 if sm:
                     sm.stateChanged.disconnect(
                         self.__signalManagerStateChanged)
+                self.__widgetManager = None
 
             self.__scheme = scheme
             self.__suggestions.set_scheme(self)
@@ -709,6 +700,7 @@ class SchemeEditWidget(QWidget):
                 sm = scheme.findChild(signalmanager.SignalManager)
                 if sm:
                     sm.stateChanged.connect(self.__signalManagerStateChanged)
+                self.__widgetManager = getattr(scheme, "widget_manager", None)
             else:
                 self.__cleanProperties = []
 
@@ -1080,16 +1072,15 @@ class SchemeEditWidget(QWidget):
         Edit (rename) the `node`'s title. Opens an input dialog.
         """
         name, ok = QInputDialog.getText(
-                    self, self.tr("Rename"),
-                    six.text_type(self.tr("Enter a new name for the '%s' widget")) \
-                    % node.title,
-                    text=node.title
-                    )
+            self, self.tr("Rename"),
+            self.tr("Enter a new name for the '%s' widget") % node.title,
+            text=node.title
+        )
 
         if ok:
             self.__undoStack.push(
                 commands.RenameNodeCommand(self.__scheme, node, node.title,
-                                           six.text_type(name))
+                                           name)
             )
 
     def __onCleanChanged(self, clean):
@@ -1104,7 +1095,7 @@ class SchemeEditWidget(QWidget):
             if self.__scene is not None:
                 self.__scene.setPalette(self.palette())
 
-        QWidget.changeEvent(self, event)
+        super().changeEvent(event)
 
     def eventFilter(self, obj, event):
         # Filter the scene's drag/drop events.
@@ -1184,7 +1175,7 @@ class SchemeEditWidget(QWidget):
                 self.window().activateWindow()
                 self.window().raise_()
 
-        return QWidget.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)
 
     def sceneMousePressEvent(self, event):
         scene = self.__scene
@@ -1211,7 +1202,7 @@ class SchemeEditWidget(QWidget):
             # just yet (instead wait for the mouse move event).
             handler = interactions.RectangleSelectionAction(self)
             rval = handler.mousePressEvent(event)
-            if rval == True:
+            if rval is True:
                 self.__possibleSelectionHandler = handler
             return rval
 
@@ -1343,9 +1334,9 @@ class SchemeEditWidget(QWidget):
 
         elif len(event.text()) and \
                 self.__quickMenuTriggers & SchemeEditWidget.AnyKey and \
-                is_printable(six.text_type(event.text())[0]):
+                is_printable(event.text()[0]):
             handler = interactions.NewNodeAction(self)
-            searchText = six.text_type(event.text())
+            searchText = event.text()
 
             # TODO: set the search text to event.text() and set focus on the
             # search line
@@ -1376,11 +1367,15 @@ class SchemeEditWidget(QWidget):
 
         item = self.scene().item_at(scenePos, items.NodeItem)
         if item is not None:
-            node = self.scene().node_for_item(item)
-            actions = qunwrap(node.property("ext-menu-actions"))
-            if isinstance(actions, list) and \
-                    all(isinstance(item, QAction) for item in actions) and \
-                            len(self.selectedNodes()) == 1:
+            node = self.scene().node_for_item(item)  # type: SchemeNode
+            actions = []
+            manager = self.widgetManager()
+            if manager is not None:
+                actions = manager.actions_for_context_menu(node)
+
+            # TODO: Inspect actions for all selected nodes and merge 'same'
+            #       actions (by name)
+            if actions and len(self.selectedNodes()) == 1:
                 # The node has extra actions for the context menu.
                 # Copy the default context menu and append the extra actions.
                 menu = QMenu(self)
@@ -1597,7 +1592,7 @@ class SchemeEditWidget(QWidget):
         else:
             handler = interactions.NewArrowAnnotation(self)
             checked = self.__arrowColorActionGroup.checkedAction()
-            handler.setColor(qunwrap(checked.data()))
+            handler.setColor(checked.data())
 
             handler.ended.connect(action.toggle)
 
@@ -1648,7 +1643,7 @@ class SchemeEditWidget(QWidget):
             # Update the preferred color on the interaction handler
             handler = self.__scene.user_interaction_handler
             if isinstance(handler, interactions.NewArrowAnnotation):
-                handler.setColor(qunwrap(action.data()))
+                handler.setColor(action.data())
 
     def __onRenameAction(self):
         """
@@ -1756,7 +1751,6 @@ class SchemeEditWidget(QWidget):
             self.insertNode(new_node, original_link)
         else:
             log.info("Cannot insert node: links not possible.")
-
 
     def __duplicateSelected(self):
         """
@@ -1874,8 +1868,11 @@ class SchemeEditWidget(QWidget):
 
     def __saveWindowGroup(self):
         # Run a 'Save Window Group' dialog
-        workflow = self.__scheme  # type: widgetsscheme.WidgetsScheme
-        state = workflow.widget_manager.save_window_state()
+        workflow = self.__scheme  # type: Scheme
+        manager = self.__widgetManager
+        if manager is None:
+            return
+        state = manager.save_window_state()
         presets = workflow.window_group_presets()
         items = [g.name for g in presets]
         default = [i for i, g in enumerate(presets) if g.default]
@@ -1948,8 +1945,9 @@ class SchemeEditWidget(QWidget):
     def __activateWindowGroup(self, action):
         # type: (QAction) -> None
         data = action.data()  # type: Scheme.WindowGroup
-        workflow = self.__scheme
-        workflow.widget_manager.activate_window_group(data)
+        wm = self.__widgetManager
+        if wm is not None:
+            wm.activate_window_group(data)
 
     def __clearWindowGroups(self):
         workflow = self.__scheme  # type: Scheme
@@ -1977,9 +1975,9 @@ class SchemeEditWidget(QWidget):
 
     def __raiseToFont(self):
         # Raise current visible widgets to front
-        wf = self.__scheme
-        if wf is not None:
-            wf.widget_manager.raise_widgets_to_front()
+        wm = self.__widgetManager
+        if wm is not None:
+            wm.raise_widgets_to_front()
 
     def activateDefaultWindowGroup(self):
         # type: () -> bool
@@ -1995,6 +1993,13 @@ class SchemeEditWidget(QWidget):
                 action.trigger()
                 return True
         return False
+
+    def widgetManager(self):
+        # type: () -> Optional[WidgetManager]
+        """
+        Return the widget manager.
+        """
+        return self.__widgetManager
 
 
 class SaveWindowGroup(QDialog):

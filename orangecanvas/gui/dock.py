@@ -9,13 +9,14 @@ A dock widget that can be a collapsed/expanded.
 
 import logging
 
-from AnyQt.QtWidgets import QDockWidget, QAbstractButton, QSizePolicy, QStyle
+from AnyQt.QtWidgets import (
+    QDockWidget, QAbstractButton, QSizePolicy, QStyle, QWIDGETSIZE_MAX
+)
 from AnyQt.QtGui import QIcon, QTransform
 from AnyQt.QtCore import Qt, QEvent
 from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
 
 from .stackedwidget import AnimatedStackedWidget
-from .utils import QWIDGETSIZE_MAX
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class CollapsibleDockWidget(QDockWidget):
     expandedChanged = Signal(bool)
 
     def __init__(self, *args, **kwargs):
-        QDockWidget.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.__expandedWidget = None
         self.__collapsedWidget = None
@@ -82,7 +83,7 @@ class CollapsibleDockWidget(QDockWidget):
         self.__stack.transitionStarted.connect(self.__onTransitionStarted)
         self.__stack.transitionFinished.connect(self.__onTransitionFinished)
 
-        QDockWidget.setWidget(self, self.__stack)
+        super().setWidget(self.__stack)
 
         self.__closeButton.setIcon(self.__iconLeft)
 
@@ -213,13 +214,12 @@ class CollapsibleDockWidget(QDockWidget):
             # TODO: which other events can trigger the button (is the button
             # focusable).
 
-        return QDockWidget.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)
 
     def event(self, event):
         if event.type() == QEvent.LayoutRequest:
             self.__fixMinimumWidth()
-
-        return QDockWidget.event(self, event)
+        return super().event(event)
 
     def __onFeaturesChanged(self, features):
         pass

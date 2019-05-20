@@ -38,12 +38,13 @@ class SplashScreen(QSplashScreen):
     """
     def __init__(self, parent=None, pixmap=None, textRect=None,
                  textFormat=Qt.PlainText, **kwargs):
-        QSplashScreen.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.__textRect = textRect
         self.__message = ""
         self.__color = Qt.black
         self.__alignment = Qt.AlignLeft
         self.__textFormat = textFormat
+        self.__pixmap = QPixmap()
 
         if pixmap is None:
             pixmap = QPixmap()
@@ -77,7 +78,7 @@ class SplashScreen(QSplashScreen):
             self.update()
 
     def showEvent(self, event):
-        QSplashScreen.showEvent(self, event)
+        super().showEvent(event)
         # Raise to top on show.
         self.raise_()
 
@@ -128,25 +129,18 @@ class SplashScreen(QSplashScreen):
         self.__alignment = alignment
         self.__color = color
         self.__message = message
-        QSplashScreen.showMessage(self, message, alignment, color)
-        QApplication.instance().processEvents()
+        super().showMessage(message, alignment, color)
 
     # Reimplemented to allow graceful fall back if the windowing system
     # does not support transparency.
     def setPixmap(self, pixmap):
         self.setAttribute(Qt.WA_TranslucentBackground,
-                          pixmap.hasAlpha() and \
-                          is_transparency_supported())
+                          pixmap.hasAlpha() and is_transparency_supported())
 
         self.__pixmap = pixmap
-
-        QSplashScreen.setPixmap(self, pixmap)
+        super().setPixmap(pixmap)
         if pixmap.hasAlpha() and not is_transparency_supported():
             self.setMask(pixmap.createHeuristicMask())
-
-    def repaint(self):
-        QWidget.repaint(self)
-        QApplication.flush()
 
     def event(self, event):
         if event.type() == event.Paint:
@@ -156,4 +150,4 @@ class SplashScreen(QSplashScreen):
                 painter.drawPixmap(0, 0, pixmap)
             self.drawContents(painter)
             return True
-        return QSplashScreen.event(self, event)
+        return super().event(event)

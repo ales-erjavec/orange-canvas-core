@@ -9,8 +9,10 @@ from ...registry import tests as registry_tests
 from ...registry.qt import QtWidgetRegistry
 from ...gui.dock import CollapsibleDockWidget
 
-from ..canvastooldock import WidgetToolBox, CanvasToolDock, SplitterResizer, \
-                             QuickCategoryToolbar
+from ..canvastooldock import (
+    WidgetToolBox, CanvasToolDock, SplitterResizer, QuickCategoryToolbar,
+    CategoryPopupMenu
+)
 
 from ...gui import test
 
@@ -83,3 +85,15 @@ class TestCanvasDockWidget(test.QAppTestCase):
         w.show()
 
         self.app.exec_()
+
+
+class TestPopupMenu(test.QAppTestCase):
+    def test(self):
+        reg = registry_tests.small_testing_registry()
+        reg = QtWidgetRegistry(reg, parent=self.app)
+        model = reg.model()
+
+        w = CategoryPopupMenu()
+        w.setModel(model)
+        w.setRootIndex(model.index(0, 0))
+        w.exec_()

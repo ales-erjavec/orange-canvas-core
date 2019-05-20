@@ -2,8 +2,6 @@
 Unittests for PrewiewBrowser widget.
 
 """
-from __future__ import print_function
-
 from ...gui import test
 
 from ..previewbrowser import PreviewBrowser
@@ -21,7 +19,7 @@ svg2 = pkg_resources.resource_string(config.__package__,
 
 def construct_test_preview_model():
     items = [
-        ("Name1", "A preview item 1", svg1.decode("utf-8"), u"~/bla", ),
+        ("Name1", "A preview item 1", svg1.decode("utf-8"), "~/bla", ),
         ("Name2", "A preview item 2" + "long text" * 5,
          svg2.decode("utf-8"), "~/item")
     ]
@@ -35,6 +33,7 @@ class TestPreviewBrowser(test.QAppTestCase):
     def test_preview_browser(self):
         w = PreviewBrowser()
         model = construct_test_preview_model()
+        model.delayedScanUpdate()
         w.setModel(model)
         w.show()
 

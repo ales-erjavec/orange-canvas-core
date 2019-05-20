@@ -6,71 +6,197 @@ Orange Canvas Configuration
 import os
 import sys
 import logging
-import pickle
 import warnings
 
 from distutils.version import LooseVersion
+import typing
+
+from typing import Dict, Optional, Tuple, List, Union, Iterable
 
 import pkg_resources
-import six
 
 from AnyQt.QtGui import (
     QPainter, QFont, QFontMetrics, QColor, QPixmap, QIcon
 )
 
-from AnyQt.QtCore import Qt, QCoreApplication, QPoint, QRect, QT_VERSION
-
-if QT_VERSION < 0x50000:
-    from AnyQt.QtGui import QDesktopServices
-else:
-    from AnyQt.QtCore import QStandardPaths
+from AnyQt.QtCore import (
+    Qt, QCoreApplication, QPoint, QRect, QSettings, QStandardPaths
+)
 
 from .utils.settings import Settings, config_slot
 
-# Import QSettings from qtcompat module (compatibility with PyQt < 4.8.3
-from .utils.qtcompat import QSettings
+if typing.TYPE_CHECKING:
+    import requests
+
+EntryPoint = pkg_resources.EntryPoint
+Distribution = pkg_resources.Distribution
 
 log = logging.getLogger(__name__)
 
 __version__ = "0.0"
 
-# from . import __version__
 
 #: Entry point by which widgets are registered.
 WIDGETS_ENTRY = "orangecanvas.widgets"
+
 #: Entry point by which add-ons register with pkg_resources.
 ADDONS_ENTRY = "orangecanvas.addon"
+
 #: Parameters for searching add-on packages in PyPi using xmlrpc api.
 ADDON_PYPI_SEARCH_SPEC = {"keywords": ["orange", "add-on"]}
 
-TUTORIALS_ENTRY = "orangecanvas.tutorials"
-
-if QT_VERSION < 0x50000:
-    def standard_location(type):
-        return QDesktopServices.storageLocation(type)
-    standard_location.DesktopLocation = QDesktopServices.DesktopLocation
-    standard_location.DataLocation = QDesktopServices.DataLocation
-    standard_location.CacheLocation = QDesktopServices.CacheLocation
-else:
-    def standard_location(type):
-        return QStandardPaths.writableLocation(type)
-    standard_location.DesktopLocation = QStandardPaths.DesktopLocation
-    standard_location.DataLocation = QStandardPaths.DataLocation
-    standard_location.CacheLocation = QStandardPaths.CacheLocation
+EXAMPLE_WORKFLOWS_ENTRY = "orangecanvas.examples"
 
 
-class default(object):
+def standard_location(type):
+    warnings.warn(
+        "Use QStandardPaths.writableLocation", DeprecationWarning,
+        stacklevel=2
+    )
+    return QStandardPaths.writableLocation(type)
+
+
+standard_location.DesktopLocation = QStandardPaths.DesktopLocation
+standard_location.DataLocation = QStandardPaths.DataLocation
+standard_location.CacheLocation = QStandardPaths.CacheLocation
+standard_location.DocumentsLocation = QStandardPaths.DocumentsLocation
+
+
+class Config:
+    """
+    Application configuration.
+    """
+    #: Organization domain
+    OrganizationDomain = ""  # type: str
+    #: The application name
+    ApplicationName = ""     # type: str
+    #: Version
+    ApplicationVersion = ""  # type: str
+
+    def init(self):
+        """
+        Initialize the QCoreApplication.organizationDomain, applicationName,
+        applicationVersion and the default settings format.
+
+        Should only be run once at application startup.
+        """
+        QCoreApplication.setOrganizationDomain(self.OrganizationDomain)
+        QCoreApplication.setApplicationName(self.ApplicationName)
+        QCoreApplication.setApplicationVersion(self.ApplicationVersion)
+        QSettings.setDefaultFormat(QSettings.IniFormat)
+
+    def application_icon(self):
+        # type: () -> QIcon
+        """
+        Return the main application icon.
+        """
+        return QIcon()
+
+    def splash_screen(self):
+        # type: () -> Tuple[QPixmap, QRect]
+        """
+        Return a splash screen pixmap and an text area within it.
+
+        The text area is used for displaying text messages during application
+        startup.
+
+        The default implementation returns a bland rectangle splash screen.
+
+        Returns
+        -------
+        t : Tuple[QPixmap, QRect]
+            A QPixmap and a rect area within it.
+        """
+        return QPixmap(), QRect()
+
+    def widgets_entry_points(self):
+        # type: () -> Iterable[EntryPoint]
+        """
+        Return an iterator over entry points defining the set of
+        'nodes/widgets' available to the workflow model.
+        """
+        return iter(())
+
+    def addon_entry_points(self):
+        # type: () -> Iterable[EntryPoint]
+        return iter(())
+
+    def addon_pypi_search_spec(self):
+        return {}
+
+    def addon_defaults_list(
+            self,
+            session=None  # type: Optional[requests.Session]
+    ):  # type: (...) -> List[Dict[str, Union[str, list, dict, int, float]]]
+        """
+        Return a list of default add-ons.
+
+        The return value must be a list with meta description following the
+        `PyPI JSON api`_ specification. At the minimum 'info.name' and
+        'info.version' must be supplied. e.g.
+
+            `[{'info': {'name': 'Super Pkg', 'version': '4.2'}}]
+
+        .. _`PyPI JSON api`:
+            https://warehouse.readthedocs.io/api-reference/json/
+        """
+        return []
+
+    def core_packages(self):
+        # type: () -> List[str]
+        """
+        Return a list of core packages.
+
+        List of packages that are core of the application. Most importantly,
+        if they themselves define add-on/plugin entry points they must
+        not be 'uninstalled' via a package manager, they can only be
+        updated.
+
+        Return
+        ------
+        packages : List[str]
+            A list of package names (can also contain PEP-440 version
+            specifiers).
+        """
+        return ["orange-canvas-core >= 0.1a, < 0.2a"]
+
+    def examples_entry_points(self):
+        # type: () -> Iterable[EntryPoint]
+        """
+        Return an iterator over entry points defining example/preset workflows.
+        """
+        return iter(())
+
+    def widget_discovery(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def workflow_constructor(self, *args, **kwargs):
+        """
+        The default workflow constructor.
+        """
+        raise NotImplementedError
+
+    #: Standard application urls. If defined to a valid url appropriate actions
+    #: are defined in various contexts
+    APPLICATION_URLS = {
+        #: Submit a bug report action in the Help menu
+        "Bug Report": None,
+        #: A url quick tour/getting started url
+        "Quick Start": None,
+        #: An url to the full documentation
+        "Documentation": None,
+        #: Video screencast/tutorials
+        "Screencasts": None,
+        #: Used for 'Submit Feedback' action in the help menu
+        "Feedback": None,
+    }  # type: Dict[str, Optional[str]]
+
+
+class Default(Config):
+
     OrganizationDomain = "biolab.si"
     ApplicationName = "Orange Canvas Core"
     ApplicationVersion = __version__
-
-    @classmethod
-    def init(cls):
-        QCoreApplication.setOrganizationDomain(cls.OrganizationDomain)
-        QCoreApplication.setApplicationName(cls.ApplicationName)
-        QCoreApplication.setApplicationVersion(cls.ApplicationVersion)
-
-        QSettings.setDefaultFormat(QSettings.IniFormat)
 
     @staticmethod
     def application_icon():
@@ -84,8 +210,22 @@ class default(object):
 
     @staticmethod
     def splash_screen():
+        # type: () -> Tuple[QPixmap, QRect]
+        """
+        Return a splash screen pixmap and an text area within it.
+
+        The text area is used for displaying text messages during application
+        startup.
+
+        The default implementation returns a bland rectangle splash screen.
+
+        Returns
+        -------
+        t : Tuple[QPixmap, QRect]
+            A QPixmap and a rect area within it.
+        """
         path = pkg_resources.resource_filename(
-            __name__, "icons/orange-splash-screen.png")
+            __name__, "icons/orange-canvas-core-splash.svg")
         pm = QPixmap(path)
 
         version = QCoreApplication.applicationVersion()
@@ -94,14 +234,14 @@ class default(object):
             version_comp = version_parsed.version
             version = ".".join(map(str, version_comp[:2]))
         size = 21 if len(version) < 5 else 16
-        font = QFont("Helvetica")
+        font = QFont()
         font.setPixelSize(size)
         font.setBold(True)
         font.setItalic(True)
         font.setLetterSpacing(QFont.AbsoluteSpacing, 2)
         metrics = QFontMetrics(font)
         br = metrics.boundingRect(version).adjusted(-5, 0, 5, 0)
-        br.moveCenter(QPoint(436, 224))
+        br.moveBottomRight(QPoint(pm.width() - 15, pm.height() - 15))
 
         p = QPainter(pm)
         p.setRenderHint(QPainter.Antialiasing)
@@ -110,14 +250,21 @@ class default(object):
         p.setPen(QColor("#231F20"))
         p.drawText(br, Qt.AlignCenter, version)
         p.end()
-        return pm, QRect(88, 193, 200, 20)
+        textarea = QRect(15, 15, 170, 20)
+        return pm, textarea
 
     @staticmethod
     def widgets_entry_points():
+        # type: () -> Iterable[EntryPoint]
+        """
+        Return an iterator over entry points defining the set of
+        'nodes/widgets' available to the workflow model.
+        """
         return pkg_resources.iter_entry_points(WIDGETS_ENTRY)
 
     @staticmethod
     def addon_entry_points():
+        # type: () -> Iterable[EntryPoint]
         return pkg_resources.iter_entry_points(ADDONS_ENTRY)
 
     @staticmethod
@@ -125,8 +272,43 @@ class default(object):
         return dict(ADDON_PYPI_SEARCH_SPEC)
 
     @staticmethod
-    def tutorials_entry_points():
-        return pkg_resources.iter_entry_points(TUTORIALS_ENTRY)
+    def addon_defaults_list(session=None):
+        """
+        Return a list of default add-ons.
+
+        The return value must be a list with meta description following the
+        `PyPI JSON api`_ specification. At the minimum 'info.name' and
+        'info.version' must be supplied. e.g.
+
+            `[{'info': {'name': 'Super Pkg', 'version': '4.2'}}]
+
+        .. _`PyPI JSON api`:
+            https://warehouse.readthedocs.io/api-reference/json/
+        """
+        return []
+
+    @staticmethod
+    def core_packages():
+        # type: () -> List[str]
+        """
+        Return a list of core packages.
+
+        List of packages that are core of the product. Most importantly,
+        if they themselves define add-on/plugin entry points they must
+        not be 'uninstalled' via a package manager, they can only be
+        updated.
+
+        Return
+        ------
+        packages : List[str]
+            A list of package names (can also contain PEP-440 version
+            specifiers).
+        """
+        return ["orange-canvas-core >= 0.0, < 0.1a"]
+
+    @staticmethod
+    def examples_entry_points():
+        return pkg_resources.iter_entry_points(EXAMPLE_WORKFLOWS_ENTRY)
 
     @staticmethod
     def widget_discovery(*args, **kwargs):
@@ -137,6 +319,9 @@ class default(object):
     def workflow_constructor(*args, **kwargs):
         from . import scheme
         return scheme.Scheme(*args, **kwargs)
+
+
+default = Default()
 
 
 def init():
@@ -165,7 +350,7 @@ spec = \
      ("startup/show-welcome-screen", bool, True,
       "Show Welcome screen at startup"),
 
-     ("stylesheet", six.text_type, "orange",
+     ("stylesheet", str, "orange",
       "QSS stylesheet to use"),
 
      ("schemeinfo/show-at-new-scheme", bool, True,
@@ -177,7 +362,7 @@ spec = \
      ("mainwindow/show-scheme-shadow", bool, True,
       "Show shadow around the workflow view"),
 
-     ("mainwindow/toolbox-dock-exclusive", bool, True,
+     ("mainwindow/toolbox-dock-exclusive", bool, False,
       "Should the toolbox show only one expanded category at the time"),
 
      ("mainwindow/toolbox-dock-floatable", bool, False,
@@ -229,6 +414,16 @@ spec = \
      ("help/open-in-external-browser", bool, False,
       "Open help in an external browser"),
 
+     ("add-ons/allow-conda-experimental", bool, False,
+      "Install add-ons with conda"),
+
+     ("add-ons/pip-install-arguments", str, '',
+      'Arguments to pass to "pip install" when installing add-ons.'),
+
+     ("network/http-proxy", str, '', 'HTTP proxy.'),
+
+     ("network/https-proxy", str, '', 'HTTPS proxy.'),
+
      ("error-reporting/send-statistics", bool, False,
       "Share anonymous usage statistics with developers"),
 
@@ -247,31 +442,30 @@ def settings():
 
 
 def data_dir():
-    """Return the application data directory. If the directory path
+    """
+    Return the application data directory. If the directory path
     does not yet exists then create it.
-
     """
     init()
-
-    datadir = standard_location(standard_location.DataLocation)
-    datadir = six.text_type(datadir)
-    version = six.text_type(QCoreApplication.applicationVersion())
+    datadir = QStandardPaths.writableLocation(QStandardPaths.DataLocation)
+    version = QCoreApplication.applicationVersion()
     datadir = os.path.join(datadir, version)
-    if not os.path.exists(datadir):
-        os.makedirs(datadir)
+    if not os.path.isdir(datadir):
+        try:
+            os.makedirs(datadir, exist_ok=True)
+        except OSError:
+            pass
     return datadir
 
 
 def cache_dir():
-    """Return the application cache directory. If the directory path
+    """
+    Return the application cache directory. If the directory path
     does not yet exists then create it.
-
     """
     init()
-
-    cachedir = standard_location(standard_location.CacheLocation)
-    cachedir = six.text_type(cachedir)
-    version = six.text_type(QCoreApplication.applicationVersion())
+    cachedir = QStandardPaths.writableLocation(QStandardPaths.CacheLocation)
+    version = QCoreApplication.applicationVersion()
     cachedir = os.path.join(cachedir, version)
     if not os.path.exists(cachedir):
         os.makedirs(cachedir)
@@ -298,6 +492,10 @@ def widget_settings_dir():
     """
     Return the widget settings directory.
     """
+    warnings.warn(
+        "'widget_settings_dir' is deprecated.",
+        DeprecationWarning, stacklevel=2
+    )
     return os.path.join(data_dir(), 'widgets')
 
 
@@ -314,33 +512,6 @@ def save_config():
         "save_config was never used and will be removed in the future",
         DeprecationWarning, stacklevel=2
     )
-
-
-def recent_schemes():
-    """Return a list of recently accessed schemes.
-    """
-    app_dir = data_dir()
-    recent_filename = os.path.join(app_dir, "recent.pck")
-    recent = []
-    if os.path.isdir(app_dir) and os.path.isfile(recent_filename):
-        with open(recent_filename, "rb") as f:
-            recent = pickle.load(f)
-
-    # Filter out files not found on the file system
-    recent = [(title, path) for title, path in recent \
-              if os.path.exists(path)]
-    return recent
-
-
-def save_recent_scheme_list(scheme_list):
-    """Save the list of recently accessed schemes
-    """
-    app_dir = data_dir()
-    recent_filename = os.path.join(app_dir, "recent.pck")
-
-    if os.path.isdir(app_dir):
-        with open(recent_filename, "wb") as f:
-            pickle.dump(scheme_list, f)
 
 
 def widgets_entry_points():

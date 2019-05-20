@@ -1,15 +1,13 @@
 """
-Orange Canvas Tutorial schemes
-
+Example workflows discovery.
 """
 import os
 import logging
 import types
 
-import six
 import pkg_resources
 
-from orangecanvas import config
+from orangecanvas import config as _config
 
 log = logging.getLogger(__name__)
 
@@ -28,47 +26,48 @@ def list_workflows(package):
     return sorted(resources)
 
 
-def tutorials():
+def workflows(config=None):
     """
     Return all known example workflows.
     """
-    all_tutorials = []
-    for ep in config.default.tutorials_entry_points():
-        tutorials = None
+    if config is None:
+        config = _config.default
+
+    workflows = []
+    if hasattr(config, "tutorials_entry_points") and \
+            callable(config.tutorials_entry_points):
+        # back compatibility
+        examples_entry_points = config.tutorials_entry_points
+    else:
+        examples_entry_points = config.examples_entry_points
+    for ep in examples_entry_points():
         try:
-            tutorials = ep.resolve()
+            examples = ep.resolve()
         except pkg_resources.DistributionNotFound as ex:
             log.warning("Could not load examples from %r (%r)",
                         ep.dist, ex)
             continue
-        except ImportError:
-            log.error("Could not load tutorials from %r",
-                      ep.dist, exc_info=True)
-            continue
         except Exception:
-            log.error("Could not load tutorials from %r",
+            log.error("Could not load examples from %r",
                       ep.dist, exc_info=True)
             continue
 
-        if isinstance(tutorials, types.ModuleType):
-            package = tutorials
-            tutorials = list_workflows(tutorials)
-            tutorials = [ExampleWorkflow(t, package, ep.dist)
-                         for t in tutorials]
-        elif isinstance(tutorials, (types.FunctionType, types.MethodType)):
+        if isinstance(examples, types.ModuleType):
+            package = examples
+            examples = [ExampleWorkflow(t, package, ep.dist)
+                        for t in list_workflows(package)]
+        elif isinstance(examples, (types.FunctionType, types.MethodType)):
             try:
-                tutorials = tutorials()
+                examples = examples()
             except Exception as ex:
                 log.error("A callable entry point (%r) raised an "
                           "unexpected error.",
                           ex, exc_info=True)
                 continue
-            tutorials = [ExampleWorkflow(t, package=None, distribution=ep.dist)
-                         for t in tutorials]
-
-        all_tutorials.extend(tutorials)
-
-    return all_tutorials
+            examples = [ExampleWorkflow(t, package=None, distribution=ep.dist)
+                        for t in examples]
+        workflows.extend(examples)
+    return workflows
 
 
 class ExampleWorkflow(object):
@@ -85,19 +84,19 @@ class ExampleWorkflow(object):
         if self.package is not None:
             return pkg_resources.resource_filename(self.package.__name__,
                                                    self.resource)
-        elif isinstance(self.resource, six.string_types):
+        elif isinstance(self.resource, str):
             if os.path.isabs(self.resource):
                 return self.resource
 
         raise ValueError("cannot resolve resource to an absolute name")
 
     def stream(self):
-        """Return the tutorial file as an open stream.
+        """Return the example file as an open stream.
         """
         if self.package is not None:
             return pkg_resources.resource_stream(self.package.__name__,
                                                  self.resource)
-        elif isinstance(self.resource, six.string_types):
+        elif isinstance(self.resource, str):
             if os.path.isabs(self.resource) and os.path.exists(self.resource):
                 return open(self.resource, "rb")
 

@@ -2,24 +2,18 @@
 Preview Browser Widget.
 
 """
-
+import os
 from xml.sax.saxutils import escape
 
-import six
 
-from AnyQt.QtWidgets import (
-    QWidget, QLabel, QListView, QAction, QVBoxLayout, QHBoxLayout, QSizePolicy,
-    QStyleOption, QStylePainter
-)
+from AnyQt.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from AnyQt.QtSvg import QSvgWidget
-from AnyQt.QtCore import (
-    Qt, QSize, QByteArray, QModelIndex, QEvent
-)
-
+from AnyQt.QtCore import Qt, QByteArray, QModelIndex
 from AnyQt.QtCore import pyqtSignal as Signal
 
-from ..utils import check_type, qtcompat
 from ..gui.dropshadow import DropShadowFrame
+from ..gui.iconview import LinearIconView
+from ..gui.textlabel import TextLabel
 from . import previewmodel
 
 
@@ -29,7 +23,7 @@ NO_PREVIEW_SVG = """
 
 
 # Default description template
-DESCRIPTION_TEMPLATE = u"""
+DESCRIPTION_TEMPLATE = """
 <h3 class=item-heading>{name}</h3>
 <p class=item-description>
 {description}
@@ -38,139 +32,6 @@ DESCRIPTION_TEMPLATE = u"""
 """
 
 PREVIEW_SIZE = (440, 295)
-
-
-class LinearIconView(QListView):
-    """
-    An list view (in QListView.IconMode) with no item wrapping.
-
-    Suitable for displaying large(ish) icons with text underneath single
-    horizontal line layout.
-    """
-    def __init__(self, *args, **kwargs):
-        QListView.__init__(self, *args, **kwargs)
-
-        self.setViewMode(QListView.IconMode)
-        self.setWrapping(False)
-        self.setWordWrap(True)
-
-        self.setSelectionMode(QListView.SingleSelection)
-        self.setEditTriggers(QListView.NoEditTriggers)
-        self.setMovement(QListView.Static)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setSizePolicy(QSizePolicy.Expanding,
-                           QSizePolicy.Fixed)
-
-        self.setIconSize(QSize(120, 80))
-
-    def sizeHint(self):
-        """
-        Reimplemented.
-
-        Provide sensible vertical size hint based on the view's contents.
-        """
-        if not self.model().rowCount():
-            return QSize(200, 140)
-        else:
-            scrollHint = self.horizontalScrollBar().sizeHint()
-            # Sample the first 10 items for a size hint. The objective is to
-            # get a representative height due to the word wrapping
-            samplesize = min(10, self.model().rowCount())
-            contentheight = max(self.sizeHintForRow(i)
-                                for i in range(samplesize))
-            height = contentheight + scrollHint.height()
-            _, top, _, bottom = self.getContentsMargins()
-            return QSize(200, height + top + bottom + self.verticalOffset())
-
-    def updateGeometries(self):
-        """Reimplemented"""
-        QListView.updateGeometries(self)
-        self.updateGeometry()
-
-    def dataChanged(self, topLeft, bottomRight, roles=[]):
-        """Reimplemented"""
-        QListView.dataChanged(self, topLeft, bottomRight)
-        self.updateGeometry()
-
-
-class TextLabel(QWidget):
-    """A plain text label widget with support for elided text.
-    """
-    def __init__(self, *args, **kwargs):
-        QWidget.__init__(self, *args, **kwargs)
-
-        self.setSizePolicy(QSizePolicy.Expanding,
-                           QSizePolicy.Preferred)
-
-        self.__text = ""
-        self.__textElideMode = Qt.ElideMiddle
-        self.__sizeHint = None
-        self.__alignment = Qt.AlignLeft | Qt.AlignVCenter
-
-    def setText(self, text):
-        """Set the `text` string to display.
-        """
-        check_type(text, six.string_types)
-        if self.__text != text:
-            self.__text = six.text_type(text)
-            self.__update()
-
-    def text(self):
-        """Return the text
-        """
-        return self.__text
-
-    def setTextElideMode(self, mode):
-        """Set elide mode (`Qt.TextElideMode`)
-        """
-        if self.__textElideMode != mode:
-            self.__textElideMode = mode
-            self.__update()
-
-    def elideMode(self):
-        return self.__elideMode
-
-    def setAlignment(self, align):
-        """Set text alignment (`Qt.Alignment`).
-        """
-        if self.__alignment != align:
-            self.__alignment = align
-            self.__update()
-
-    def sizeHint(self):
-        if self.__sizeHint is None:
-            option = QStyleOption()
-            option.initFrom(self)
-            metrics = option.fontMetrics
-
-            self.__sizeHint = QSize(200, metrics.height())
-
-        return self.__sizeHint
-
-    def paintEvent(self, event):
-        painter = QStylePainter(self)
-        option = QStyleOption()
-        option.initFrom(self)
-
-        rect = option.rect
-        metrics = option.fontMetrics
-        text = metrics.elidedText(self.__text, self.__textElideMode,
-                                  rect.width())
-        painter.drawItemText(rect, self.__alignment,
-                             option.palette, self.isEnabled(), text,
-                             self.foregroundRole())
-        painter.end()
-
-    def changeEvent(self, event):
-        if event.type() == QEvent.FontChange:
-            self.__update()
-
-        return QWidget.changeEvent(self, event)
-
-    def __update(self):
-        self.__sizeHint = None
-        self.updateGeometry()
-        self.update()
 
 
 class PreviewBrowser(QWidget):
@@ -182,27 +43,39 @@ class PreviewBrowser(QWidget):
     # Emitted when an item is double clicked in the preview list.
     activated = Signal(int)
 
-    def __init__(self, *args):
-        QWidget.__init__(self, *args)
+    def __init__(self, *args, heading="", previewMargins=12, **kwargs):
+        super().__init__(*args)
         self.__model = None
         self.__currentIndex = -1
         self.__template = DESCRIPTION_TEMPLATE
+        self.__margin = previewMargins
         self.__setupUi()
+        self.setHeading(heading)
 
     def __setupUi(self):
         vlayout = QVBoxLayout()
         vlayout.setContentsMargins(0, 0, 0, 0)
-        top_layout = QHBoxLayout()
-        top_layout.setContentsMargins(12, 12, 12, 12)
+        top_layout = QVBoxLayout(objectName="top-layout")
+        margin = self.__margin
+        top_layout.setContentsMargins(margin, margin, margin, margin)
+        # Optional heading label
 
-        # Top row with full text description and a large preview
+        self.__heading = QLabel(
+            self, objectName="heading", visible=False
+        )
+        # Horizontal row with full text description and a large preview
         # image.
-        self.__label = QLabel(self, objectName="description-label",
-                              wordWrap=True,
-                              alignment=Qt.AlignTop | Qt.AlignLeft)
+        hlayout = QHBoxLayout()
+        hlayout.setContentsMargins(0, 0, 0, 0)
+        self.__label = QLabel(
+            self, objectName="description-label",
+            wordWrap=True, alignment=Qt.AlignTop | Qt.AlignLeft
+        )
 
         self.__label.setWordWrap(True)
         self.__label.setFixedSize(220, PREVIEW_SIZE[1])
+        self.__label.setMinimumWidth(PREVIEW_SIZE[0] // 2)
+        self.__label.setMaximumHeight(PREVIEW_SIZE[1])
 
         self.__image = QSvgWidget(self, objectName="preview-image")
         self.__image.setFixedSize(*PREVIEW_SIZE)
@@ -210,36 +83,55 @@ class PreviewBrowser(QWidget):
         self.__imageFrame = DropShadowFrame(self)
         self.__imageFrame.setWidget(self.__image)
 
+        hlayout.addWidget(self.__label)
+        hlayout.addWidget(self.__image)
+
         # Path text below the description and image
         path_layout = QHBoxLayout()
-        path_layout.setContentsMargins(12, 0, 12, 0)
+        path_layout.setContentsMargins(0, 0, 0, 0)
         path_label = QLabel("<b>{0!s}</b>".format(self.tr("Path:")), self,
                             objectName="path-label")
-
         self.__path = TextLabel(self, objectName="path-text")
 
         path_layout.addWidget(path_label)
         path_layout.addWidget(self.__path)
 
-        self.__selectAction = \
-            QAction(self.tr("Select"), self,
-                    objectName="select-action",
-                    )
-
-        top_layout.addWidget(self.__label, 1,
-                             alignment=Qt.AlignTop | Qt.AlignLeft)
-        top_layout.addWidget(self.__image, 1,
-                             alignment=Qt.AlignTop | Qt.AlignRight)
+        top_layout.addWidget(self.__heading)
+        top_layout.addLayout(hlayout)
+        top_layout.addLayout(path_layout)
 
         vlayout.addLayout(top_layout)
-        vlayout.addLayout(path_layout)
 
         # An list view with small preview icons.
-        self.__previewList = LinearIconView(objectName="preview-list-view")
+        self.__previewList = LinearIconView(
+            objectName="preview-list-view",
+            wordWrap=True
+        )
         self.__previewList.doubleClicked.connect(self.__onDoubleClicked)
 
         vlayout.addWidget(self.__previewList)
         self.setLayout(vlayout)
+
+    def setHeading(self, text):
+        self.__heading.setVisible(bool(text))
+        self.__heading.setText(text)
+
+    def setPreviewMargins(self, margin):
+        # type: (int) -> None
+        """
+        Set the left, top and right margins of the top widget part (heading
+        and description)
+
+        Parameters
+        ----------
+        margin : int
+            Margin
+        """
+        if margin != self.__margin:
+            layout = self.layout().itemAt(0).layout()
+            assert isinstance(layout, QVBoxLayout)
+            assert layout.objectName() == "top-layout"
+            layout.setContentsMargins(margin, margin, margin, 0)
 
     def setModel(self, model):
         """Set the item model for preview.
@@ -340,36 +232,61 @@ class PreviewBrowser(QWidget):
             path = ""
             svg = NO_PREVIEW_SVG
         else:
-            description = qtcompat.qunwrap(index.data(Qt.WhatsThisRole))
+            description = index.data(Qt.WhatsThisRole)
             if description:
-                description = six.text_type(description)
+                description = description
             else:
-                description = u"No description."
+                description = "No description."
 
             description = escape(description)
             description = description.replace("\n", "<br/>")
 
-            name = qtcompat.qunwrap(index.data(Qt.DisplayRole))
+            name = index.data(Qt.DisplayRole)
             if name:
-                name = six.text_type(name)
+                name = name
             else:
                 name = "Untitled"
 
             name = escape(name)
-            path = qtcompat.qunwrap(index.data(Qt.StatusTipRole))
-            path = six.text_type(path)
-
-            svg = qtcompat.qunwrap(index.data(previewmodel.ThumbnailSVGRole))
-            svg = six.text_type(svg)
+            path = str(index.data(Qt.StatusTipRole))
+            svg = str(index.data(previewmodel.ThumbnailSVGRole))
 
         desc_text = self.__template.format(description=description, name=name)
 
         self.__label.setText(desc_text)
 
-        self.__path.setText(path)
+        self.__path.setText(contractuser(path))
 
         if not svg:
             svg = NO_PREVIEW_SVG
 
         if svg:
             self.__image.load(QByteArray(svg.encode("utf-8")))
+
+
+def contractuser(path):
+    # type: (str) -> str
+    """
+    Inverse of `expanduser(join("~", path))`
+
+    Return the path unmodified if not under user's home dir.
+
+    Parameters
+    ----------
+    path : str
+
+    Returns
+    -------
+    path : str
+
+    Examples
+    --------
+    >>> contractuser(os.path.expanduser("~/hello"))
+    '~/hello'
+    """
+    home = os.path.expanduser("~/")
+    pathnorm = os.path.normcase(os.path.normpath(path))
+    homenorm = os.path.normcase(os.path.normpath(home))
+    if pathnorm.startswith(homenorm):
+        path = os.path.join("~", os.path.relpath(path, home))
+    return path

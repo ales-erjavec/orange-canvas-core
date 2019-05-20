@@ -14,17 +14,17 @@ from operator import eq, attrgetter
 from AnyQt.QtWidgets import (
     QWidget, QFrame, QSizePolicy, QStyle, QStyleOptionToolButton,
     QStyleOptionToolBox, QScrollArea, QVBoxLayout, QToolButton,
-    QAction, QActionGroup, QApplication
+    QAction, QActionGroup, QApplication, QWIDGETSIZE_MAX
 )
 from AnyQt.QtGui import (
     QIcon, QFontMetrics, QPainter, QPalette, QBrush, QPen, QColor,
 )
 from AnyQt.QtCore import (
-    Qt, QObject, QSize, QRect, QPoint, QSignalMapper, QEvent
+    Qt, QObject, QSize, QRect, QPoint, QSignalMapper
 )
 from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
-from .utils import brush_darker, QWIDGETSIZE_MAX
+from .utils import brush_darker
 
 _ToolBoxPage = namedtuple(
     "_ToolBoxPage",
@@ -71,7 +71,7 @@ class ToolBoxTabButton(QToolButton):
         font = kwargs.pop("font", None)
         palette = kwargs.pop("palette", None)
 
-        QToolButton.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if font is None:
             self.setFont(QApplication.font("QAbstractButton"))
@@ -94,7 +94,7 @@ class ToolBoxTabButton(QToolButton):
 
     def paintEvent(self, event):
         if self.__nativeStyling:
-            QToolButton.paintEvent(self, event)
+            super().paintEvent(event)
         else:
             self.__paintEventNoStyle()
 
@@ -203,31 +203,16 @@ class ToolBoxTabButton(QToolButton):
         p.restore()
 
 
-class _ToolBoxScrollArea(QScrollArea):
-    def eventFilter(self, obj, event):
-        if obj is self.widget() and event.type() == QEvent.Resize:
-            if event.size() == event.oldSize() and self.widgetResizable():
-                # This is driving me insane. This should not have happened.
-                # Before the event is sent QWidget specifically makes sure the
-                # sizes are different, but somehow I still get this, and enter
-                # an infinite recursion if I enter QScrollArea.eventFilter.
-                # I can only duplicate this on one development machine a
-                # Mac OSX using fink and Qt 4.7.3
-                return False
-
-        return QScrollArea.eventFilter(self, obj, event)
-
-
 class _ToolBoxLayout(QVBoxLayout):
     def __init__(self, *args, **kwargs):
         self.__minimumSize = None
         self.__maximumSize = None
-        QVBoxLayout.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def minimumSize(self):
         """Reimplemented from `QBoxLayout.minimimSize`."""
         if self.__minimumSize is None:
-            msize = QVBoxLayout.minimumSize(self)
+            msize = super().minimumSize()
             # Extend the minimum size by including the minimum width of
             # hidden widgets (which QBoxLayout ignores), so the minimum
             # width does not depend on the tab open/close state.
@@ -242,7 +227,7 @@ class _ToolBoxLayout(QVBoxLayout):
 
     def maximumSize(self):
         """Reimplemented from `QBoxLayout.maximumSize`."""
-        msize = QVBoxLayout.maximumSize(self)
+        msize = super().maximumSize()
         # Allow the contents to grow horizontally (expand within the
         # containing scroll area - joining the tab buttons to the
         # right edge), but have a suitable maximum height (displaying an
@@ -255,7 +240,7 @@ class _ToolBoxLayout(QVBoxLayout):
         """Reimplemented from `QVBoxLayout.invalidate`."""
         self.__minimumSize = None
         self.__maximumSize = None
-        QVBoxLayout.invalidate(self)
+        super().invalidate()
 
 
 class ToolBox(QFrame):
@@ -263,7 +248,7 @@ class ToolBox(QFrame):
     A tool box widget.
     """
     # Emitted when a tab is toggled.
-    tabToogled = Signal(int, bool)
+    tabToggled = Signal(int, bool)
 
     def setExclusive(self, exclusive):
         """
@@ -300,7 +285,7 @@ class ToolBox(QFrame):
                           doc="Exclusive tabs")
 
     def __init__(self, parent=None, **kwargs):
-        QFrame.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
 
         self.__pages = []
         self.__tabButtonHeight = -1
@@ -313,15 +298,16 @@ class ToolBox(QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # Scroll area for the contents.
-        self.__scrollArea = \
-                _ToolBoxScrollArea(self, objectName="toolbox-scroll-area")
+        self.__scrollArea = QScrollArea(
+            self, objectName="toolbox-scroll-area",
+            sizePolicy=QSizePolicy(QSizePolicy.MinimumExpanding,
+                                   QSizePolicy.MinimumExpanding),
+            verticalScrollBarPolicy=Qt.ScrollBarAlwaysOn,
+            horizontalScrollBarPolicy=Qt.ScrollBarAlwaysOff,
 
-        self.__scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.__scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.__scrollArea.setSizePolicy(QSizePolicy.MinimumExpanding,
-                                        QSizePolicy.MinimumExpanding)
+            widgetResizable=True,
+        )
         self.__scrollArea.setFrameStyle(QScrollArea.NoFrame)
-        self.__scrollArea.setWidgetResizable(True)
 
         # A widget with all of the contents.
         # The tabs/contents are placed in the layout inside this widget
@@ -348,7 +334,7 @@ class ToolBox(QFrame):
         self.__tabActionGroup.setExclusive(self.__exclusive)
 
         self.__actionMapper = QSignalMapper(self)
-        self.__actionMapper.mapped[QObject].connect(self.__onTabActionToogled)
+        self.__actionMapper.mapped[QObject].connect(self.__onTabActionToggled)
 
     def setTabButtonHeight(self, height):
         """
@@ -538,7 +524,7 @@ class ToolBox(QFrame):
 
         return QSize(200, 200).expandedTo(hint)
 
-    def __onTabActionToogled(self, action):
+    def __onTabActionToggled(self, action):
         page = find(self.__pages, action, key=attrgetter("action"))
         on = action.isChecked()
         page.widget.setVisible(on)
@@ -565,7 +551,7 @@ class ToolBox(QFrame):
 
             next.update()
 
-        self.tabToogled.emit(index, on)
+        self.tabToggled.emit(index, on)
 
         self.__contentsLayout.invalidate()
 

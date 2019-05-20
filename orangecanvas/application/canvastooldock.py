@@ -3,16 +3,18 @@ Orange Canvas Tool Dock widget
 
 """
 import sys
+import warnings
+from typing import Optional
 
 from AnyQt.QtWidgets import (
-    QWidget, QSplitter, QVBoxLayout, QTextEdit, QAction, QSizePolicy,
-    QApplication,
+    QWidget, QSplitter, QVBoxLayout, QAction, QSizePolicy, QApplication,
 )
 from AnyQt.QtGui import QPalette, QBrush, QDrag
 
 from AnyQt.QtCore import (
     Qt, QSize, QObject, QPropertyAnimation, QEvent, QRect, QPoint,
-    QModelIndex, QPersistentModelIndex, QEventLoop, QMimeData
+    QAbstractItemModel, QModelIndex, QPersistentModelIndex, QEventLoop,
+    QMimeData
 )
 from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
 
@@ -23,9 +25,7 @@ from ..gui.framelesswindow import FramelessWindow
 from ..document.quickmenu import MenuPage
 from ..document.quickmenu import create_css_gradient
 from .widgettoolbox import WidgetToolBox, iter_index, item_text, item_icon, item_tooltip
-
 from ..registry.qt import QtWidgetRegistry
-from ..utils.qtcompat import qunwrap
 
 
 class SplitterResizer(QObject):
@@ -33,7 +33,7 @@ class SplitterResizer(QObject):
     An object able to control the size of a widget in a QSplitter instance.
     """
     def __init__(self, parent=None):
-        QObject.__init__(self, parent)
+        super().__init__(parent)
         self.__splitter = None
         self.__widget = None
         self.__updateOnShow = True  # Need __update on next show event
@@ -202,7 +202,7 @@ class SplitterResizer(QObject):
             # Update the splitter state after receiving valid geometry
             self.__updateOnShow = False
             self.__update()
-        return QObject.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)
 
 
 class QuickHelpWidget(QuickHelp):
@@ -211,7 +211,7 @@ class QuickHelpWidget(QuickHelp):
         with a continuous animation.
 
         """
-        hint = QTextEdit.minimumSizeHint(self)
+        hint = super().minimumSizeHint()
         return QSize(hint.width(), 0)
 
 
@@ -221,7 +221,7 @@ class CanvasToolDock(QWidget):
 
     """
     def __init__(self, parent=None, **kwargs):
-        QWidget.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
 
         self.__setupUi()
 
@@ -277,8 +277,8 @@ class QuickCategoryToolbar(ToolGrid):
     """A toolbar with category buttons.
     """
     def __init__(self, parent=None, buttonSize=None, iconSize=None):
-        ToolGrid.__init__(self, parent, 1, buttonSize, iconSize,
-                          Qt.ToolButtonIconOnly)
+        super().__init__(parent, 1, buttonSize, iconSize,
+                         Qt.ToolButtonIconOnly)
         self.__model = None
 
     def setColumnCount(self, count):
@@ -320,14 +320,14 @@ class QuickCategoryToolbar(ToolGrid):
     def createButtonForAction(self, action):
         """Create a button for the action.
         """
-        button = ToolGrid.createButtonForAction(self, action)
+        button = super().createButtonForAction(action)
 
-        item = qunwrap(action.data())  # QPersistentModelIndex
+        item = action.data()  # QPersistentModelIndex
         assert isinstance(item, QPersistentModelIndex)
 
-        brush = qunwrap(item.data(Qt.BackgroundRole))
+        brush = item.data(Qt.BackgroundRole)
         if not isinstance(brush, QBrush):
-            brush = qunwrap(item.data(QtWidgetRegistry.BACKGROUND_ROLE))
+            brush = item.data(QtWidgetRegistry.BACKGROUND_ROLE)
             if not isinstance(brush, QBrush):
                 brush = self.palette().brush(QPalette.Button)
 
@@ -369,12 +369,17 @@ class QuickCategoryToolbar(ToolGrid):
                 self.removeAction(action)
 
 
+# This implements the (single category) node selection popup when the
+# tooldock is not expanded.
 class CategoryPopupMenu(FramelessWindow):
+    """
+    A menu popup from which nodes can be dragged or clicked/activated.
+    """
     triggered = Signal(QAction)
     hovered = Signal(QAction)
 
     def __init__(self, parent=None, **kwargs):
-        FramelessWindow.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.setWindowFlags(self.windowFlags() | Qt.Popup)
 
         layout = QVBoxLayout()
@@ -400,18 +405,60 @@ class CategoryPopupMenu(FramelessWindow):
 
         self.__action = None
         self.__loop = None
-        self.__item = None
 
     def setCategoryItem(self, item):
         """
         Set the category root item (:class:`QStandardItem`).
         """
-        self.__item = item
+        warnings.warn(
+            "setCategoryItem is deprecated. Use the more general 'setModel'"
+            "and setRootIndex", DeprecationWarning, stacklevel=2
+        )
         model = item.model()
         self.__menu.setModel(model)
         self.__menu.setRootIndex(item.index())
 
-    def popup(self, pos=None):
+    def setModel(self, model):  # type: (QAbstractItemModel) -> None
+        """
+        Set the model.
+
+        Parameters
+        ----------
+        model : QAbstractItemModel
+        """
+        self.__menu.setModel(model)
+
+    def setRootIndex(self, index):  # type: (QModelIndex) -> None
+        """
+        Set the root index in `model`.
+
+        Parameters
+        ----------
+        index : QModelIndex
+        """
+        self.__menu.setRootIndex(index)
+
+    def setActionRole(self, role):  # type: (Qt.ItemDataRole) -> None
+        """
+        Set the action role in model.
+
+        This is an item role in `model` that returns a QAction for the item.
+
+        Parameters
+        ----------
+        role : Qt.ItemDataRole
+        """
+        self.__menu.setActionRole(role)
+
+    def popup(self, pos=None):  # type: (Optional[QPoint]) -> None
+        """
+        Show the popup at `pos`.
+
+        Parameters
+        ----------
+        pos : Optional[QPoint]
+            The position in global screen coordinates
+        """
         if pos is None:
             pos = self.pos()
         self.adjustSize()
@@ -437,7 +484,7 @@ class CategoryPopupMenu(FramelessWindow):
         if self.__loop is not None:
             self.__loop.exit(0)
 
-        return FramelessWindow.hideEvent(self, event)
+        return super().hideEvent(event)
 
     def __onTriggered(self, action):
         self.__action = action
@@ -448,8 +495,8 @@ class CategoryPopupMenu(FramelessWindow):
             self.__loop.exit(0)
 
     def __onDragStarted(self, index):
-        desc = qunwrap(index.data(QtWidgetRegistry.WIDGET_DESC_ROLE))
-        icon = qunwrap(index.data(Qt.DecorationRole))
+        desc = index.data(QtWidgetRegistry.WIDGET_DESC_ROLE)
+        icon = index.data(Qt.DecorationRole)
 
         drag_data = QMimeData()
         drag_data.setData(
@@ -479,7 +526,7 @@ class ItemViewDragStartEventListener(QObject):
     dragStarted = Signal(QModelIndex)
 
     def __init__(self, parent=None):
-        QObject.__init__(self, parent)
+        super().__init__(parent)
         self._pos = None
         self._index = None
 
@@ -509,7 +556,7 @@ class ItemViewDragStartEventListener(QObject):
 
                 self.dragStarted.emit(index)
 
-        return QObject.eventFilter(self, view, event)
+        return super().eventFilter(view, event)
 
 
 class ToolTipEventFilter(QObject):
@@ -517,7 +564,7 @@ class ToolTipEventFilter(QObject):
         if event.type() == QEvent.ToolTip:
             return True
 
-        return QObject.eventFilter(self, receiver, event)
+        return super().eventFilter(receiver, event)
 
 
 def widget_popup_geometry(pos, widget):

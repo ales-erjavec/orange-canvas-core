@@ -14,7 +14,7 @@ from ...registry.tests import small_testing_registry
 
 class TestAnchorLayout(QAppTestCase):
     def setUp(self):
-        super(TestAnchorLayout, self).setUp()
+        super().setUp()
         self.scene = CanvasScene()
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.Antialiasing)
@@ -27,7 +27,7 @@ class TestAnchorLayout(QAppTestCase):
         self.scene.deleteLater()
         del self.scene
         del self.view
-        super(TestAnchorLayout, self).tearDown()
+        super().tearDown()
 
     def test_layout(self):
         one_desc, negate_desc, cons_desc = self.widget_desc()
@@ -72,7 +72,7 @@ class TestAnchorLayout(QAppTestCase):
         path.addEllipse(125, 0, 50, 300)
 
         def advance():
-            t = time.clock()
+            t = time.process_time()
             cons_item.setPos(path.pointAtPercent(t % 1.0))
             negate_item.setPos(path.pointAtPercent((t + 0.5) % 1.0))
 

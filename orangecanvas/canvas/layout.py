@@ -2,31 +2,22 @@
 Node/Link layout.
 
 """
-from operator import attrgetter, add
-
-import numpy
+from operator import attrgetter
 
 import sip
 
 from AnyQt.QtWidgets import QGraphicsObject, QApplication
 from AnyQt.QtCore import QRectF, QLineF, QEvent
 
-from .items import NodeItem, LinkItem, SourceAnchorItem, SinkAnchorItem
-from .items.utils import invert_permutation_indices, linspace
-from functools import reduce
-
-
-def composition(f, g):
-    """Return a composition of two functions
-    """
-    def fg(arg):
-        return g(f(arg))
-    return fg
+from .items import LinkItem, SourceAnchorItem, SinkAnchorItem
+from .items.utils import (
+    invert_permutation_indices, argsort, composition, linspace_trunc
+)
 
 
 class AnchorLayout(QGraphicsObject):
     def __init__(self, parent=None, **kwargs):
-        QGraphicsObject.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.setFlag(QGraphicsObject.ItemHasNoContents)
 
         self.__layoutPending = False
@@ -77,26 +68,15 @@ class AnchorLayout(QGraphicsObject):
                 others_angle = [angle(other.anchorScenePos(), anchor_pos)
                                 for other in others]
 
-            indices = list(numpy.argsort(others_angle))
+            indices = argsort(others_angle)
             # Invert the indices.
             indices = invert_permutation_indices(indices)
 
-            positions = numpy.array(linspace(len(points)))
-            positions = list(positions[indices])
-
+            positions = list(linspace_trunc(len(points)))
+            positions = [positions[i] for i in indices]
             anchor_item.setAnchorPositions(positions)
 
         self.__invalidatedAnchors = []
-
-    def invalidate(self):
-        items = self.scene().items()
-        nodes = [item for item in items is isinstance(item, NodeItem)]
-        anchors = reduce(add,
-                         [[node.outputAnchorItem, node.inputAnchorItem]
-                          for node in nodes],
-                         [])
-        self.__invalidatedAnchors.extend(anchors)
-        self.scheduleDelayedActivate()
 
     def invalidateLink(self, link):
         self.invalidateAnchorItem(link.sourceItem.outputAnchorItem)
@@ -143,7 +123,7 @@ class AnchorLayout(QGraphicsObject):
             self.activate()
             return True
 
-        return QGraphicsObject.event(self, event)
+        return super().event(event)
 
 
 def angle(point1, point2):

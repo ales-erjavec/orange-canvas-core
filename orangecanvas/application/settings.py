@@ -9,7 +9,6 @@ from collections import namedtuple
 
 from .. import config
 from ..utils.settings import SettingChangedEvent
-from ..utils.qtcompat import QSettings, qunwrap
 
 from ..utils.propertybindings import (
     AbstractBoundProperty, PropertyBinding, BindingManager
@@ -18,14 +17,19 @@ from ..utils.propertybindings import (
 from AnyQt.QtWidgets import (
     QWidget, QMainWindow, QComboBox, QCheckBox, QListView, QTabWidget,
     QToolBar, QAction, QStackedWidget, QVBoxLayout, QHBoxLayout,
-    QFormLayout, QSizePolicy, QDialogButtonBox
+    QFormLayout, QSizePolicy, QDialogButtonBox, QLineEdit, QLabel
 )
 from AnyQt.QtGui import QStandardItemModel, QStandardItem
 from AnyQt.QtCore import (
-    Qt, QEventLoop, QAbstractItemModel, QModelIndex
+    Qt, QEventLoop, QAbstractItemModel, QModelIndex, QSettings
 )
 
 log = logging.getLogger(__name__)
+
+
+def refresh_proxies():
+    from orangecanvas.main import fix_set_proxy_env
+    fix_set_proxy_env()
 
 
 class UserDefaultsPropertyBinding(AbstractBoundProperty):
@@ -35,7 +39,7 @@ class UserDefaultsPropertyBinding(AbstractBoundProperty):
 
     """
     def __init__(self, obj, propertyName, parent=None):
-        AbstractBoundProperty.__init__(self, obj, propertyName, parent)
+        super().__init__(obj, propertyName, parent)
 
         obj.installEventFilter(self)
 
@@ -50,7 +54,7 @@ class UserDefaultsPropertyBinding(AbstractBoundProperty):
                 event.key() == self.propertyName:
             self.notifyChanged()
 
-        return AbstractBoundProperty.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)
 
 
 class UserSettingsModel(QAbstractItemModel):
@@ -60,7 +64,7 @@ class UserSettingsModel(QAbstractItemModel):
 
     """
     def __init__(self, parent=None, settings=None):
-        QAbstractItemModel.__init__(self, parent)
+        super().__init__(parent)
 
         self.__settings = settings
         self.__headers = ["Name", "Status", "Type", "Value"]
@@ -103,7 +107,7 @@ class UserSettingsModel(QAbstractItemModel):
             if role == Qt.DisplayRole:
                 return self.__headers[section]
 
-        return QAbstractItemModel.headerData(self, section, orientation, role)
+        return super().headerData(section, orientation, role)
 
     def data(self, index, role=Qt.DisplayRole):
         if self._valid(index):
@@ -135,7 +139,6 @@ class UserSettingsModel(QAbstractItemModel):
     def setData(self, index, value, role=Qt.EditRole):
         if self._valid(index) and index.column() == 3:
             key = self._keyFromIndex(index)
-            value = qunwrap(value)
             try:
                 self.__settings[key] = value
             except (TypeError, ValueError) as ex:
@@ -187,7 +190,7 @@ class UserSettingsDialog(QMainWindow):
     MAC_UNIFIED = True
 
     def __init__(self, parent=None, **kwargs):
-        QMainWindow.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.setWindowFlags(Qt.Dialog)
         self.setWindowModality(Qt.ApplicationModal)
 
@@ -206,8 +209,9 @@ class UserSettingsDialog(QMainWindow):
         """Set up the UI.
         """
         if self.__macUnified:
-            self.tab = QToolBar()
-
+            self.tab = QToolBar(
+                floatable=False, movable=False, allowedAreas=Qt.TopToolBarArea,
+            )
             self.addToolBar(Qt.TopToolBarArea, self.tab)
             self.setUnifiedTitleAndToolBarOnMac(True)
 
@@ -386,7 +390,9 @@ class UserSettingsDialog(QMainWindow):
         # Categories Tab
         tab = QWidget()
         layout = QVBoxLayout()
-        view = QListView()
+        view = QListView(
+            editTriggers=QListView.NoEditTriggers
+        )
         from .. import registry
         reg = registry.global_registry()
         model = QStandardItemModel()
@@ -412,6 +418,44 @@ class UserSettingsDialog(QMainWindow):
         )
 
         self.addTab(tab, "Categories")
+
+        # Add-ons Tab
+        tab = QWidget()
+        self.addTab(tab, self.tr("Add-ons"),
+                    toolTip="Settings related to add-on installation")
+
+        form = QFormLayout()
+        conda = QWidget(self, objectName="conda-group")
+        conda.setLayout(QVBoxLayout())
+        conda.layout().setContentsMargins(0, 0, 0, 0)
+
+        cb_conda_install = QCheckBox(self.tr("Install add-ons with conda"), self,
+                                     objectName="allow-conda-experimental")
+        self.bind(cb_conda_install, "checked", "add-ons/allow-conda-experimental")
+        conda.layout().addWidget(cb_conda_install)
+
+        form.addRow(self.tr("Conda"), conda)
+
+        form.addRow(self.tr("Pip"), QLabel("Pip install arguments:"))
+        line_edit_pip = QLineEdit()
+        self.bind(line_edit_pip, "text", "add-ons/pip-install-arguments")
+        form.addRow("", line_edit_pip)
+
+        tab.setLayout(form)
+
+        # Network Tab
+        tab = QWidget()
+        self.addTab(tab, self.tr("Network"),
+                    toolTip="Settings related to networking")
+
+        form = QFormLayout()
+        line_edit_http_proxy = QLineEdit()
+        self.bind(line_edit_http_proxy, "text", "network/http-proxy")
+        form.addRow("HTTP proxy:", line_edit_http_proxy)
+        line_edit_https_proxy = QLineEdit()
+        self.bind(line_edit_https_proxy, "text", "network/https-proxy")
+        form.addRow("HTTPS proxy:", line_edit_https_proxy)
+        tab.setLayout(form)
 
         if self.__macUnified:
             # Need some sensible size otherwise mac unified toolbar 'takes'
@@ -481,16 +525,17 @@ class UserSettingsDialog(QMainWindow):
         self.show()
         status = self.__loop.exec_()
         self.__loop = None
+        refresh_proxies()
         return status
 
     def hideEvent(self, event):
-        QMainWindow.hideEvent(self, event)
+        super().hideEvent(event)
         if self.__loop is not None:
             self.__loop.exit(0)
             self.__loop = None
 
     def __macOnToolBarAction(self, action):
-        index = qunwrap(action.data())
+        index = action.data()
         self.stack.setCurrentIndex(index)
 
 

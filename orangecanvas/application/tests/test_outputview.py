@@ -4,9 +4,7 @@ import multiprocessing.pool
 from datetime import datetime
 from threading import current_thread
 
-import six
-
-from AnyQt.QtCore import Qt, QThread, QTimer
+from AnyQt.QtCore import Qt, QThread, QTimer, QCoreApplication, QEvent
 from ...gui.test import QAppTestCase
 
 from ..outputview import OutputView, TextStream, ExceptHook
@@ -20,16 +18,16 @@ class TestOutputView(QAppTestCase):
         line1 = "A line \n"
         line2 = "A different line\n"
         output.write(line1)
-        self.assertEqual(six.text_type(output.toPlainText()), line1)
+        self.assertEqual(output.toPlainText(), line1)
 
         output.write(line2)
-        self.assertEqual(six.text_type(output.toPlainText()), line1 + line2)
+        self.assertEqual(output.toPlainText(), line1 + line2)
 
         output.clear()
-        self.assertEqual(six.text_type(output.toPlainText()), "")
+        self.assertEqual(output.toPlainText(), "")
 
         output.writelines([line1, line2])
-        self.assertEqual(six.text_type(output.toPlainText()), line1 + line2)
+        self.assertEqual(output.toPlainText(), line1 + line2)
 
         output.setMaximumLines(5)
 
@@ -37,7 +35,7 @@ class TestOutputView(QAppTestCase):
             now = datetime.now().strftime("%c\n")
             output.write(now)
 
-            text = six.text_type(output.toPlainText())
+            text = output.toPlainText()
             self.assertLessEqual(len(text.splitlines()), 5)
 
         timer = QTimer(output, interval=500)
@@ -50,13 +48,13 @@ class TestOutputView(QAppTestCase):
         output.show()
 
         output.write("A sword day, ")
-        with output.formated(color=Qt.red) as f:
+        with output.formatted(color=Qt.red) as f:
             f.write("a red day...\n")
 
-            with f.formated(color=Qt.green) as f:
+            with f.formatted(color=Qt.green) as f:
                 f.write("Actually sir, orcs bleed green.\n")
 
-        bold = output.formated(weight=100, underline=True)
+        bold = output.formatted(weight=100, underline=True)
         bold.write("Shutup")
 
         self.app.exec_()
@@ -66,8 +64,8 @@ class TestOutputView(QAppTestCase):
         output.resize(500, 300)
         output.show()
 
-        blue_formater = output.formated(color=Qt.blue)
-        red_formater = output.formated(color=Qt.red)
+        blue_formater = output.formatted(color=Qt.blue)
+        red_formater = output.formatted(color=Qt.red)
 
         correct = []
 
@@ -108,15 +106,20 @@ class TestOutputView(QAppTestCase):
 
         res.wait()
 
+        # force all pending enqueued emits
+        QCoreApplication.sendPostedEvents(blue, QEvent.MetaCall)
+        QCoreApplication.sendPostedEvents(red, QEvent.MetaCall)
+        self.app.processEvents()
+
         self.assertTrue(all(correct))
-        self.assertTrue(len(correct) == 10000)
+        self.assertEqual(len(correct), 10000)
 
     def test_excepthook(self):
         output = OutputView()
         output.resize(500, 300)
         output.show()
 
-        red_formater = output.formated(color=Qt.red)
+        red_formater = output.formatted(color=Qt.red)
 
         red = TextStream()
         red.stream.connect(red_formater.write)

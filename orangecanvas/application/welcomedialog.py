@@ -2,13 +2,16 @@
 Orange Canvas Welcome Dialog
 
 """
+from xml.sax.saxutils import escape
 
 from AnyQt.QtWidgets import (
     QDialog, QWidget, QToolButton, QCheckBox, QAction,
-    QHBoxLayout, QVBoxLayout, QSizePolicy
+    QHBoxLayout, QVBoxLayout, QSizePolicy, QLabel
 )
 
-from AnyQt.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QBrush
+from AnyQt.QtGui import (
+    QFont, QIcon, QPixmap, QPainter, QColor, QBrush, QActionEvent
+)
 from AnyQt.QtCore import Qt, QRect, QSize, QPoint
 from AnyQt.QtCore import pyqtSignal as Signal
 
@@ -44,9 +47,7 @@ def decorate_welcome_icon(icon, background_color):
     return welcome_icon
 
 
-WELCOME_WIDGET_BUTTON_STYLE = \
-"""
-
+WELCOME_WIDGET_BUTTON_STYLE = """
 WelcomeActionButton {
     border: none;
     icon-size: 75px;
@@ -64,31 +65,41 @@ WelcomeActionButton:focus {
                                       stop: 0 #dadbde, stop: 1 #f6f7fa);
     border-radius: 10px;
 }
-
 """
 
 
 class WelcomeActionButton(QToolButton):
-    def __init__(self, parent=None):
-        QToolButton.__init__(self, parent)
-
-    def paintEvent(self, event):
-        QToolButton.paintEvent(self, event)
+    def actionEvent(self, event):
+        # type: (QActionEvent) -> None
+        super().actionEvent(event)
+        if event.type() == QActionEvent.ActionChanged \
+                and event.action() is self.defaultAction():
+            # The base does not update self visibility for defaultAction.
+            self.setVisible(event.action().isVisible())
 
 
 class WelcomeDialog(QDialog):
-    """A welcome widget shown at startup presenting a series
+    """
+    A welcome widget shown at startup presenting a series
     of buttons (actions) for a beginner to choose from.
-
     """
     triggered = Signal(QAction)
 
     def __init__(self, *args, **kwargs):
-        QDialog.__init__(self, *args, **kwargs)
+        showAtStartup = kwargs.pop("showAtStartup", True)
+        feedbackUrl = kwargs.pop("feedbackUrl", "")
+        super().__init__(*args, **kwargs)
 
         self.__triggeredAction = None
+        self.__showAtStartupCheck = None
+        self.__mainLayout = None
+        self.__feedbackUrl = None
+        self.__feedbackLabel = None
 
         self.setupUi()
+
+        self.setFeedbackUrl(feedbackUrl)
+        self.setShowAtStartup(showAtStartup)
 
     def setupUi(self):
         self.setLayout(QVBoxLayout())
@@ -110,14 +121,21 @@ class WelcomeDialog(QDialog):
         bottom_bar.setSizePolicy(QSizePolicy.MinimumExpanding,
                                  QSizePolicy.Maximum)
 
-        check = QCheckBox(self.tr("Show at startup"), bottom_bar)
-        check.setChecked(False)
+        self.__showAtStartupCheck = QCheckBox(
+            self.tr("Show at startup"), bottom_bar, checked=False
+        )
+        self.__feedbackLabel = QLabel(
+            textInteractionFlags=Qt.TextBrowserInteraction,
+            openExternalLinks=True,
+            visible=False,
+        )
 
-        self.__showAtStartupCheck = check
-
-        bottom_bar_layout.addWidget(check, alignment=Qt.AlignVCenter | \
-                                    Qt.AlignLeft)
-
+        bottom_bar_layout.addWidget(
+            self.__showAtStartupCheck, alignment=Qt.AlignVCenter | Qt.AlignLeft
+        )
+        bottom_bar_layout.addWidget(
+            self.__feedbackLabel, alignment=Qt.AlignVCenter | Qt.AlignRight
+        )
         self.layout().addWidget(bottom_bar, alignment=Qt.AlignBottom,
                                 stretch=1)
 
@@ -136,6 +154,21 @@ class WelcomeDialog(QDialog):
         Return the 'Show at startup' check box state.
         """
         return self.__showAtStartupCheck.isChecked()
+
+    def setFeedbackUrl(self, url):
+        # type: (str) -> None
+        """
+        Set an 'feedback' url. When set a link is displayed in the bottom row.
+        """
+        self.__feedbackUrl = url
+        if url:
+            text = self.tr("Help us improve!")
+            self.__feedbackLabel.setText(
+                '<a href="{url}">{text}</a>'.format(url=url, text=escape(text))
+            )
+        else:
+            self.__feedbackLabel.setText("")
+        self.__feedbackLabel.setVisible(bool(url))
 
     def addRow(self, actions, background="light-orange"):
         """Add a row with `actions`.
@@ -183,6 +216,7 @@ class WelcomeDialog(QDialog):
         button.setToolTip(action.toolTip())
         button.setFixedSize(100, 100)
         button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        button.setVisible(action.isVisible())
         font = QFont(button.font())
         font.setPointSize(13)
         button.setFont(font)
@@ -205,7 +239,7 @@ class WelcomeDialog(QDialog):
     def showEvent(self, event):
         # Clear the triggered action before show.
         self.__triggeredAction = None
-        QDialog.showEvent(self, event)
+        super().showEvent(event)
 
     def __on_actionTriggered(self, action):
         """Called when the button action is triggered.

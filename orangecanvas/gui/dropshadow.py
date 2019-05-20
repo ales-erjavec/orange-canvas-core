@@ -18,12 +18,10 @@ from AnyQt.QtCore import (
 )
 from AnyQt.QtCore import pyqtProperty as Property
 
-CACHED_SHADOW_RECT_SIZE = (50, 50)
-
 
 def render_drop_shadow_frame(pixmap, shadow_rect, shadow_color,
                              offset, radius, rect_fill_color):
-    pixmap.fill(QColor(0, 0, 0, 0))
+    pixmap.fill(Qt.transparent)
     scene = QGraphicsScene()
     rect = QGraphicsRectItem(shadow_rect)
     rect.setBrush(QColor(rect_fill_color))
@@ -60,13 +58,14 @@ class DropShadowFrame(QWidget):
     """
     def __init__(self, parent=None, color=QColor(), radius=5,
                  **kwargs):
-        QWidget.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.setAttribute(Qt.WA_NoChildEventsForParent, True)
         self.setFocusPolicy(Qt.NoFocus)
 
         self.__color = QColor(color)
         self.__radius = radius
+        self.__offset = QPoint(0, 0)
 
         self.__widget = None
         self.__widgetParent = None
@@ -116,6 +115,18 @@ class DropShadowFrame(QWidget):
     radius_ = Property(int, fget=radius, fset=setRadius, designable=True,
                        doc="Drop shadow blur radius.")
 
+    def setOffset(self, offset):
+        if self.__offset != QPoint(offset):
+            self.__offset = QPoint(offset)
+            self.__updateGeometry()
+            self.__updatePixmap()
+
+    def offset(self):
+        return QPoint(self.__offset)
+
+    offset_ = Property(QPoint, fget=offset, fset=setOffset, designable=True,
+                       doc="Drop shadow offset.")
+
     def setWidget(self, widget):
         """
         Set the widget around which to show the shadow.
@@ -154,20 +165,24 @@ class DropShadowFrame(QWidget):
         # TODO: Use QPainter.drawPixmapFragments on Qt 4.7
         opt = QStyleOption()
         opt.initFrom(self)
+        radius = self.radius_
+        offset = self.__offset
 
         pixmap = self.__shadowPixmap
-
+        pixr = pixmap.devicePixelRatio()
+        assert pixr == self.devicePixelRatio()
         shadow_rect = QRectF(opt.rect)
         widget_rect = QRectF(self.widget().geometry())
-        widget_rect.moveTo(self.radius_, self.radius_)
+        widget_rect.moveTo(radius - offset.x(), radius - offset.y())
 
-        left = top = right = bottom = self.radius_
+        left = top = right = bottom = radius * pixr
         pixmap_rect = QRectF(QPointF(0, 0), QSizeF(pixmap.size()))
 
         # Shadow casting rectangle in the source pixmap.
         pixmap_shadow_rect = pixmap_rect.adjusted(left, top, -right, -bottom)
+        pixmap_shadow_rect.translate(-offset.x() * pixr, -offset.y() * pixr)
         source_rects = self.__shadowPixmapFragments(pixmap_rect,
-                                                   pixmap_shadow_rect)
+                                                    pixmap_shadow_rect)
         target_rects = self.__shadowPixmapFragments(shadow_rect, widget_rect)
 
         painter = QPainter(self)
@@ -184,7 +199,7 @@ class DropShadowFrame(QWidget):
             self.show()
         elif etype == QEvent.Hide:
             self.hide()
-        return QWidget.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)
 
     def __updateGeometry(self):
         """
@@ -195,21 +210,24 @@ class DropShadowFrame(QWidget):
         widget = self.__widget
         parent = self.__widgetParent
         radius = self.radius_
+        offset = self.__offset
         pos = widget.pos()
         if parent != widget.parentWidget():
             pos = widget.parentWidget().mapTo(parent, pos)
 
         geom = QRect(pos, widget.size())
-        geom.adjust(-radius, -radius, radius, radius)
+        geom = geom.adjusted(-radius, -radius, radius, radius)
+        geom = geom.translated(offset)
         if geom != self.geometry():
             self.setGeometry(geom)
 
         # Set the widget mask (punch a hole through to the `widget` instance.
         rect = self.rect()
-
         mask = QRegion(rect)
-        transparent = QRegion(rect.adjusted(radius, radius, -radius, -radius))
 
+        rect = rect.adjusted(radius, radius, -radius, -radius)
+        rect = rect.translated(-offset)
+        transparent = QRegion(rect)
         mask = mask.subtracted(transparent)
         self.setMask(mask)
 
@@ -217,148 +235,33 @@ class DropShadowFrame(QWidget):
         """
         Update the cached shadow pixmap.
         """
-        rect_size = QSize(50, 50)
-        left = top = right = bottom = self.radius_
-
+        offset = self.__offset
+        pixr = self.devicePixelRatio()
+        rect_size = QSize(50 * pixr, 50 * pixr)
+        left = top = right = bottom = self.radius_ * pixr
         # Size of the pixmap.
         pixmap_size = QSize(rect_size.width() + left + right,
                             rect_size.height() + top + bottom)
-        shadow_rect = QRect(QPoint(left, top), rect_size)
+        shadow_rect = QRect(QPoint(left, top) - offset *pixr, rect_size)
         pixmap = QPixmap(pixmap_size)
-        pixmap.fill(QColor(0, 0, 0, 0))
+        pixmap.fill(Qt.transparent)
         rect_fill_color = self.palette().color(QPalette.Window)
 
         pixmap = render_drop_shadow_frame(
-                      pixmap,
-                      QRectF(shadow_rect),
-                      shadow_color=self.color_,
-                      offset=QPointF(0, 0),
-                      radius=self.radius_,
-                      rect_fill_color=rect_fill_color
-                      )
-
+            pixmap,
+            QRectF(shadow_rect),
+            shadow_color=self.color_,
+            offset=offset * pixr,
+            radius=self.radius_ * pixr,
+            rect_fill_color=rect_fill_color
+        )
+        pixmap.setDevicePixelRatio(pixr)
         self.__shadowPixmap = pixmap
         self.update()
 
     def __shadowPixmapFragments(self, pixmap_rect, shadow_rect):
         """
         Return a list of 8 QRectF fragments for drawing a shadow.
-        """
-        s_left, s_top, s_right, s_bottom = \
-            shadow_rect.left(), shadow_rect.top(), \
-            shadow_rect.right(), shadow_rect.bottom()
-        s_width, s_height = shadow_rect.width(), shadow_rect.height()
-        p_width, p_height = pixmap_rect.width(), pixmap_rect.height()
-
-        top_left = QRectF(0.0, 0.0, s_left, s_top)
-        top = QRectF(s_left, 0.0, s_width, s_top)
-        top_right = QRectF(s_right, 0.0, p_width - s_width, s_top)
-        right = QRectF(s_right, s_top, p_width - s_right, s_height)
-        right_bottom = QRectF(shadow_rect.bottomRight(),
-                              pixmap_rect.bottomRight())
-        bottom = QRectF(shadow_rect.bottomLeft(),
-                        pixmap_rect.bottomRight() - \
-                        QPointF(p_width - s_right, 0.0))
-        bottom_left = QRectF(shadow_rect.bottomLeft() - QPointF(s_left, 0.0),
-                             pixmap_rect.bottomLeft() + QPointF(s_left, 0.0))
-        left = QRectF(pixmap_rect.topLeft() + QPointF(0.0, s_top),
-                      shadow_rect.bottomLeft())
-        return [top_left, top, top_right, right, right_bottom,
-                bottom, bottom_left, left]
-
-
-# A different obsolete implementation
-
-class _DropShadowWidget(QWidget):
-    """A frame widget drawing a drop shadow effect around its
-    contents.
-
-    """
-    def __init__(self, parent=None, offset=None, radius=None,
-                 color=None, **kwargs):
-        QWidget.__init__(self, parent, **kwargs)
-
-        # Bypass the overloaded method to set the default margins.
-        QWidget.setContentsMargins(self, 10, 10, 10, 10)
-
-        if offset is None:
-            offset = QPointF(0., 0.)
-        if radius is None:
-            radius = 20
-        if color is None:
-            color = QColor(Qt.black)
-
-        self.offset = offset
-        self.radius = radius
-        self.color = color
-        self._shadowPixmap = None
-        self._updateShadowPixmap()
-
-    def setOffset(self, offset):
-        """Set the drop shadow offset (`QPoint`)
-        """
-        self.offset = offset
-        self._updateShadowPixmap()
-        self.update()
-
-    def setRadius(self, radius):
-        """Set the drop shadow blur radius (`float`).
-        """
-        self.radius = radius
-        self._updateShadowPixmap()
-        self.update()
-
-    def setColor(self, color):
-        """Set the drop shadow color (`QColor`).
-        """
-        self.color = color
-        self._updateShadowPixmap()
-        self.update()
-
-    def setContentsMargins(self, *args, **kwargs):
-        QWidget.setContentsMargins(self, *args, **kwargs)
-        self._updateShadowPixmap()
-
-    def _updateShadowPixmap(self):
-        """Update the cached drop shadow pixmap.
-        """
-        # Rectangle casting the shadow
-        rect_size = QSize(*CACHED_SHADOW_RECT_SIZE)
-        left, top, right, bottom = self.getContentsMargins()
-        # Size of the pixmap.
-        pixmap_size = QSize(rect_size.width() + left + right,
-                            rect_size.height() + top + bottom)
-        shadow_rect = QRect(QPoint(left, top), rect_size)
-        pixmap = QPixmap(pixmap_size)
-        pixmap.fill(QColor(0, 0, 0, 0))
-        rect_fill_color = self.palette().color(QPalette.Window)
-
-        pixmap = render_drop_shadow_frame(pixmap, QRectF(shadow_rect),
-                                          shadow_color=self.color,
-                                          offset=self.offset,
-                                          radius=self.radius,
-                                          rect_fill_color=rect_fill_color)
-
-        self._shadowPixmap = pixmap
-
-    def paintEvent(self, event):
-        pixmap = self._shadowPixmap
-        widget_rect = QRectF(QPointF(0.0, 0.0), QSizeF(self.size()))
-        frame_rect = QRectF(self.contentsRect())
-        left, top, right, bottom = self.getContentsMargins()
-        pixmap_rect = QRectF(QPointF(0, 0), QSizeF(pixmap.size()))
-        # Shadow casting rectangle.
-        pixmap_shadow_rect = pixmap_rect.adjusted(left, top, -right, -bottom)
-        source_rects = self._shadowPixmapFragments(pixmap_rect,
-                                                   pixmap_shadow_rect)
-        target_rects = self._shadowPixmapFragments(widget_rect, frame_rect)
-        painter = QPainter(self)
-        for source, target in zip(source_rects, target_rects):
-            painter.drawPixmap(target, pixmap, source)
-        painter.end()
-
-    def _shadowPixmapFragments(self, pixmap_rect, shadow_rect):
-        """Return a list of 8 QRectF fragments for drawing a shadow.
         """
         s_left, s_top, s_right, s_bottom = \
             shadow_rect.left(), shadow_rect.top(), \

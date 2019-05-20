@@ -5,7 +5,7 @@ import io
 from xml.etree import ElementTree as ET
 
 from ...gui import test
-from ...registry import WidgetRegistry, WidgetDescription
+from ...registry import WidgetRegistry, WidgetDescription, CategoryDescription
 from ...registry import tests as registry_tests
 
 from .. import Scheme, SchemeNode, SchemeLink, \
@@ -117,27 +117,6 @@ class TestReadWrite(test.QAppTestCase):
         with self.assertRaises(TypeError):
             readwrite.literal_dumps(self)
 
-    def test_1_0_parse(self):
-        tree = ET.parse(io.BytesIO(FOOBAR_v10.encode()))
-        parsed = readwrite.parse_ows_etree_v_1_0(tree)
-        self.assertIsInstance(parsed, readwrite._scheme)
-        self.assertEqual(parsed.version, "1.0")
-        self.assertTrue(len(parsed.nodes) == 2)
-        self.assertTrue(len(parsed.links) == 2)
-
-        qnames = [node.qualified_name for node in parsed.nodes]
-        self.assertSetEqual(set(qnames), set(["foo", "bar"]))
-
-        reg = foo_registry()
-
-        parsed = readwrite.resolve_1_0(parsed, reg)
-
-        qnames = [node.qualified_name for node in parsed.nodes]
-        self.assertSetEqual(set(qnames),
-                            set(["package.foo", "frob.bar"]))
-        projects = [node.project_name for node in parsed.nodes]
-        self.assertSetEqual(set(projects), set(["Foo", "Bar"]))
-
     def test_resolve_replaced(self):
         tree = ET.parse(io.BytesIO(FOOBAR_v20.encode()))
         parsed = readwrite.parse_ows_etree_v_2_0(tree)
@@ -163,12 +142,14 @@ class TestReadWrite(test.QAppTestCase):
 
 def foo_registry():
     reg = WidgetRegistry()
+    reg.register_category(CategoryDescription("Quack"))
     reg.register_widget(
         WidgetDescription(
             name="Foo",
             id="foooo",
             qualified_name="package.foo",
-            project_name="Foo"
+            project_name="Foo",
+            category="Quack",
         )
     )
     reg.register_widget(
@@ -177,8 +158,8 @@ def foo_registry():
             id="barrr",
             qualified_name="frob.bar",
             project_name="Bar",
-            replaces=["package.bar"]
-
+            replaces=["package.bar"],
+            category="Quack",
         )
     )
     return reg

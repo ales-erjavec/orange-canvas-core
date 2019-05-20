@@ -7,15 +7,13 @@ A :class:`QuickMenu` widget provides lists of actions organized in tabs
 with a quick search functionality.
 
 """
-
+import statistics
 import sys
 import logging
 
-from collections import namedtuple, Callable
+from collections import namedtuple
+from collections.abc import Callable
 
-import six
-
-import numpy
 
 from AnyQt.QtWidgets import (
     QWidget, QFrame, QToolButton, QAbstractButton, QAction, QTreeView,
@@ -36,7 +34,6 @@ from ..gui.framelesswindow import FramelessWindow
 from ..gui.lineedit import LineEdit
 from ..gui.tooltree import ToolTree, FlattenedTreeItemModel
 from ..gui.utils import StyledWidget_paintEvent, create_css_gradient
-from ..utils import qtcompat
 from ..registry.qt import QtWidgetRegistry
 
 from ..resources import icon_loader
@@ -46,12 +43,12 @@ log = logging.getLogger(__name__)
 
 class _MenuItemDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
-        QStyledItemDelegate.__init__(self, parent)
+        super().__init__(parent)
 
     def sizeHint(self, option, index):
         option = QStyleOptionViewItem(option)
         self.initStyleOption(option, index)
-        size = QStyledItemDelegate.sizeHint(self, option, index)
+        size = super().sizeHint(option, index)
 
         # TODO: get the default QMenu item height from the current style.
         size.setHeight(max(size.height(), 25))
@@ -66,7 +63,7 @@ class MenuPage(ToolTree):
 
     """
     def __init__(self, parent=None, title=None, icon=None, **kwargs):
-        ToolTree.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
 
         if title is None:
             title = ""
@@ -99,8 +96,7 @@ class MenuPage(ToolTree):
         """
         return self.__title
 
-    title_ = Property(six.text_type, fget=title, fset=setTitle,
-                      doc="Title of the page.")
+    title_ = Property(str, fget=title, fset=setTitle, doc="Title of the page.")
 
     def setIcon(self, icon):
         """
@@ -136,7 +132,7 @@ class MenuPage(ToolTree):
         """
         proxyModel = ItemDisableFilter(self)
         proxyModel.setSourceModel(model)
-        ToolTree.setModel(self, proxyModel)
+        super().setModel(proxyModel)
 
         self.__invalidateSizeHint()
 
@@ -146,7 +142,7 @@ class MenuPage(ToolTree):
         """
         proxyModel = self.view().model()
         mappedIndex = proxyModel.mapFromSource(index)
-        ToolTree.setRootIndex(self, mappedIndex)
+        super().setRootIndex(mappedIndex)
 
         self.__invalidateSizeHint()
 
@@ -155,7 +151,7 @@ class MenuPage(ToolTree):
         Reimplemented from :func:`ToolTree.rootIndex`
         """
         proxyModel = self.view().model()
-        return proxyModel.mapToSource(ToolTree.rootIndex(self))
+        return proxyModel.mapToSource(super().rootIndex())
 
     def sizeHint(self):
         """
@@ -209,7 +205,7 @@ class ItemDisableFilter(QSortFilterProxyModel):
 
     """
     def __init__(self, parent=None):
-        QSortFilterProxyModel.__init__(self, parent)
+        super().__init__(parent)
 
         self.__filterFunc = None
 
@@ -248,7 +244,7 @@ class SuggestMenuPage(MenuPage):
 
     """
     def __init__(self, *args, **kwargs):
-        MenuPage.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def setModel(self, model):
         """
@@ -261,6 +257,8 @@ class SuggestMenuPage(MenuPage):
         proxy = SortFilterProxyModel(self)
         proxy.setFilterCaseSensitivity(False)
         proxy.setSourceModel(flat)
+        # bypass MenuPage.setModel and its own proxy
+        # TODO: store my self.__proxy
         ToolTree.setModel(self, proxy)
         self.ensureCurrent()
 
@@ -319,7 +317,7 @@ class SortFilterProxyModel(QSortFilterProxyModel):
 
     """
     def __init__(self, parent=None):
-        QSortFilterProxyModel.__init__(self, parent)
+        super().__init__(parent)
 
         self.__filterFunc = None
         self.__sortingFunc = None
@@ -342,8 +340,11 @@ class SortFilterProxyModel(QSortFilterProxyModel):
         flat_model = self.sourceModel()
         index = flat_model.index(row, self.filterKeyColumn(), parent)
         description = flat_model.data(index, role=QtWidgetRegistry.WIDGET_DESC_ROLE)
+        if description is None:
+            return False
+
         name = description.name
-        keywords = description.keywords
+        keywords = description.keywords or []
 
         # match name and keywords
         accepted = False
@@ -370,7 +371,7 @@ class SortFilterProxyModel(QSortFilterProxyModel):
 
     def lessThan(self, left, right):
         if self.__sortingFunc is None:
-            return QSortFilterProxyModel.lessThan(self, left, right)
+            return super().lessThan(left, right)
         model = self.sourceModel()
         left_data = model.data(left)
         right_data = model.data(right)
@@ -389,7 +390,7 @@ class SortFilterProxyModel(QSortFilterProxyModel):
 
 class SearchWidget(LineEdit):
     def __init__(self, parent=None, **kwargs):
-        LineEdit.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.__setupUi()
 
     def __setupUi(self):
@@ -416,9 +417,12 @@ class MenuStackWidget(QStackedWidget):
             widget_hints.append(hint)
 
         width = max([s.width() for s in widget_hints])
-        # Take the median for the height
-        height = numpy.median([s.height() for s in widget_hints])
 
+        if widget_hints:
+            # Take the median for the height
+            height = statistics.median([s.height() for s in widget_hints])
+        else:
+            height = default_size.height()
         return QSize(width, int(height))
 
     def __sizeHintForTreeView(self, view):
@@ -439,7 +443,7 @@ class MenuStackWidget(QStackedWidget):
 
 class TabButton(QToolButton):
     def __init__(self, parent=None, **kwargs):
-        QToolButton.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.setCheckable(True)
 
@@ -514,7 +518,7 @@ class TabBarWidget(QWidget):
     currentChanged = Signal(int)
 
     def __init__(self, parent=None, **kwargs):
-        QWidget.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -749,13 +753,13 @@ class TabBarWidget(QWidget):
                 #also update sloppy region if mouse is moved on the same icon
                 self.__sloppyRegion = self.__calcSloppyRegion(pos)
 
-        return QWidget.eventFilter(self, receiver, event)
+        return super().eventFilter(receiver, event)
 
     def leaveEvent(self, event):
         self.__sloppyButton = None
         self.__sloppyRegion = QRegion()
 
-        return QWidget.leaveEvent(self, event)
+        return super().leaveEvent(event)
 
 
 class PagedMenu(QWidget):
@@ -768,7 +772,7 @@ class PagedMenu(QWidget):
     currentChanged = Signal(int)
 
     def __init__(self, parent=None, **kwargs):
-        QWidget.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
 
         self.__pages = []
         self.__currentIndex = -1
@@ -870,8 +874,7 @@ class PagedMenu(QWidget):
         return self.__tab.button(index)
 
 
-def qvariant_to_qbrush(variant):
-    value = qtcompat.qunwrap(variant)
+def as_qbrush(value):
     if isinstance(value, QBrush):
         return value
     else:
@@ -916,7 +919,7 @@ class QuickMenu(FramelessWindow):
     hovered = Signal(QAction)
 
     def __init__(self, parent=None, **kwargs):
-        FramelessWindow.__init__(self, parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.setWindowFlags(Qt.Popup)
 
         self.__filterFunc = None
@@ -1052,14 +1055,14 @@ class QuickMenu(FramelessWindow):
             # bar at the top.
             view.setAttribute(Qt.WA_MacShowFocusRect, False)
 
-        name = six.text_type(index.data(Qt.DisplayRole))
+        name = str(index.data(Qt.DisplayRole))
         page.setTitle(name)
 
-        icon = qtcompat.qunwrap(index.data(Qt.DecorationRole))
+        icon = index.data(Qt.DecorationRole)
         if isinstance(icon, QIcon):
             page.setIcon(icon)
 
-        page.setToolTip(qtcompat.qunwrap(index.data(Qt.ToolTipRole)))
+        page.setToolTip(index.data(Qt.ToolTipRole))
         return page
 
     def __clear(self):
@@ -1096,8 +1099,7 @@ class QuickMenu(FramelessWindow):
                 # Note: the tab buttons are offest by 1 (to accommodate
                 # the Suggest Page).
                 button = self.__pages.tabButton(row + 1)
-                brush = index.data(QtWidgetRegistry.BACKGROUND_ROLE)
-                brush = qvariant_to_qbrush(brush)
+                brush = as_qbrush(index.data(QtWidgetRegistry.BACKGROUND_ROLE))
                 if brush is not None:
                     base_color = brush.color()
                     button.setStyleSheet(
@@ -1125,8 +1127,7 @@ class QuickMenu(FramelessWindow):
 
         i = self.insertPage(row, page.title(), page)
 
-        brush = index.data(QtWidgetRegistry.BACKGROUND_ROLE)
-        brush = qvariant_to_qbrush(brush)
+        brush = as_qbrush(index.data(QtWidgetRegistry.BACKGROUND_ROLE))
         if brush is not None:
             base_color = brush.color()
             button = self.__pages.tabButton(i)
@@ -1174,7 +1175,7 @@ class QuickMenu(FramelessWindow):
         self.__clearCurrentItems()
 
         self.__search.setText(searchText)
-        patt = QRegExp("(^|\W)"+searchText)
+        patt = QRegExp(r"(^|\W)"+searchText)
         patt.setCaseSensitivity(False)
         self.__suggestPage.setFilterRegExp(patt)
 
@@ -1247,7 +1248,7 @@ class QuickMenu(FramelessWindow):
         """
         Reimplemented from :class:`QWidget`
         """
-        FramelessWindow.hideEvent(self, event)
+        super().hideEvent(event)
         if self.__loop:
             self.__loop.exit()
 
@@ -1281,7 +1282,7 @@ class QuickMenu(FramelessWindow):
         self.triggered.emit(action)
 
     def __on_textEdited(self, text):
-        patt = QRegExp("(^|\W)" + text)
+        patt = QRegExp(r"(^|\W)" + text)
         patt.setCaseSensitivity(False)
         self.__suggestPage.setFilterRegExp(patt)
         self.__pages.setCurrentPage(self.__suggestPage)
@@ -1314,7 +1315,7 @@ class QuickMenu(FramelessWindow):
             self.setCurrentIndex(0)
             self.__search.keyPressEvent(event)
 
-        FramelessWindow.keyPressEvent(self, event)
+        super().keyPressEvent(event)
         event.accept()
 
     def event(self, event):
@@ -1322,7 +1323,7 @@ class QuickMenu(FramelessWindow):
             log.debug("Overriding shortcuts")
             event.accept()
             return True
-        return FramelessWindow.event(self, event)
+        return super().event(event)
 
     def eventFilter(self, obj, event):
         if isinstance(obj, QTreeView):
@@ -1336,7 +1337,7 @@ class QuickMenu(FramelessWindow):
                     self.__search.keyPressEvent(event)
                     return True
 
-        return FramelessWindow.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)
 
 
 class ItemViewKeyNavigator(QObject):
@@ -1346,7 +1347,7 @@ class ItemViewKeyNavigator(QObject):
 
     """
     def __init__(self, parent=None):
-        QObject.__init__(self, parent)
+        super().__init__(parent)
         self.__view = None
 
     def setView(self, view):
@@ -1379,7 +1380,7 @@ class ItemViewKeyNavigator(QObject):
                 self.activateCurrent()
                 return True
 
-        return QObject.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)
 
     def moveCurrent(self, rows, columns=0):
         """
@@ -1439,7 +1440,7 @@ class WindowSizeGrip(QSizeGrip):
 
     """
     def __init__(self, parent):
-        QSizeGrip.__init__(self, parent)
+        super().__init__(parent)
         self.__corner = Qt.BottomRightCorner
 
         self.resize(self.sizeHint())
@@ -1470,15 +1471,13 @@ class WindowSizeGrip(QSizeGrip):
         if obj is self.window():
             if event.type() == QEvent.Resize:
                 self.__updatePos()
-
-        return QSizeGrip.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)
 
     def showEvent(self, event):
         if self.window() != self.parent():
             log.error("%s: Can only show on a top level window.",
                       type(self).__name__)
-
-        return QSizeGrip.showEvent(self, event)
+        return super().showEvent(event)
 
     def __updatePos(self):
         window = self.window()

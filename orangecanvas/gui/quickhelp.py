@@ -1,6 +1,4 @@
-from collections import Callable
-
-import six
+from collections.abc import Callable
 
 from AnyQt.QtWidgets import QTextBrowser
 from AnyQt.QtGui import QStatusTipEvent, QWhatsThisClickedEvent
@@ -14,13 +12,14 @@ class QuickHelp(QTextBrowser):
     textChanged = Signal()
 
     def __init__(self, *args, **kwargs):
-        QTextBrowser.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.setOpenExternalLinks(False)
         self.setOpenLinks(False)
 
         self.__text = ""
         self.__permanentText = ""
+        self.__defaultText = ""
 
         self.__timer = QTimer(self, timeout=self.__on_timeout,
                               singleShot=True)
@@ -34,7 +33,7 @@ class QuickHelp(QTextBrowser):
 
         """
         if self.__text != text:
-            self.__text = six.text_type(text)
+            self.__text = text
             self.__update()
             self.textChanged.emit()
 
@@ -59,6 +58,17 @@ class QuickHelp(QTextBrowser):
             self.__update()
             self.textChanged.emit()
 
+    def setDefaultText(self, text):
+        """
+        Set default help text. The text is overriden by normal and permanent help messages,
+        but is show again after such messages are cleared.
+
+        """
+        if self.__defaultText != text:
+            self.__defaultText = text
+            self.__update()
+            self.textChanged.emit()
+
     def currentText(self):
         """
         Return the current shown text.
@@ -68,8 +78,10 @@ class QuickHelp(QTextBrowser):
     def __update(self):
         if self.__text:
             self.setHtml(self.__text)
-        else:
+        elif self.__permanentText:
             self.setHtml(self.__permanentText)
+        else:
+            self.setHtml(self.__defaultText)
 
     def __on_timeout(self):
         if self.__text:
@@ -86,7 +98,7 @@ class QuickHelpTipEvent(QStatusTipEvent):
     Temporary, Normal, Permanent = range(1, 4)
 
     def __init__(self, tip, html=None, priority=Normal, timeout=None):
-        QStatusTipEvent.__init__(self, tip)
+        super().__init__(tip)
         self.__html = html or ""
         self.__priority = priority
         self.__timeout = timeout
@@ -103,7 +115,7 @@ class QuickHelpTipEvent(QStatusTipEvent):
 
 class QuickHelpDetailRequestEvent(QWhatsThisClickedEvent):
     def __init__(self, href, url):
-        QWhatsThisClickedEvent.__init__(self, href)
+        super().__init__(href)
         self.__url = QUrl(url)
 
     def url(self):
@@ -132,4 +144,4 @@ class StatusTipPromoter(QObject):
                 ev = QuickHelpTipEvent(tip, text if tip else "")
                 return QCoreApplication.sendEvent(obj, ev)
 
-        return QObject.eventFilter(self, obj, event)
+        return super().eventFilter(obj, event)

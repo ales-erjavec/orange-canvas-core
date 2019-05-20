@@ -13,23 +13,13 @@ import pickle
 import shlex
 import shutil
 import io
-import platform
-
-if sys.version_info < (3, 3):
-    from contextlib2 import ExitStack
-else:
-    from contextlib import ExitStack
+from urllib.request import getproxies
+from contextlib import ExitStack, redirect_stdout, redirect_stderr
 
 import pkg_resources
 
 from AnyQt.QtGui import QFont, QColor, QPalette
-from AnyQt.QtCore import Qt, QDir, QT_VERSION
-
-import AnyQt.importhooks
-
-if AnyQt.USED_API == "pyqt5":
-    # Use a backport shim to fake leftover PyQt4 imports
-    AnyQt.importhooks.install_backport_hook('pyqt4')
+from AnyQt.QtCore import Qt, QDir, QSettings, QT_VERSION
 
 from .application.application import CanvasApplication
 from .application.canvasmain import CanvasMainWindow
@@ -37,9 +27,6 @@ from .application.outputview import TextStream, ExceptHook
 
 from . import utils, config
 from .gui.splashscreen import SplashScreen
-from .utils.redirect import redirect_stdout, redirect_stderr
-from .utils.qtcompat import QSettings
-
 from .registry import qt
 from .registry import WidgetRegistry, set_global_registry
 from .registry import cache
@@ -47,24 +34,60 @@ from .registry import cache
 log = logging.getLogger(__name__)
 
 
-def fix_osx_private_font():
-    """Temporary fixes for QTBUG-32789, QTBUG-40833 and QTBUG-47206"""
-    if sys.platform == "darwin" and QT_VERSION < 0x50000:
-        release = platform.mac_ver()[0]
-        if not release:
-            return
-        release = release.split(".")[:2]
-        osx_release = (int(release[0]), int(release[1]))
-        if osx_release >= (10, 11):
-            # El Capitan (or later?)
-            QFont.insertSubstitution(".SF NS Text", "Helvetica Neue")
-        elif osx_release == (10, 10) and QT_VERSION < 0x40807:
-            # Yosemite
-            QFont.insertSubstitution(".Helvetica Neue DeskInterface",
-                                     "Helvetica Neue")
-        elif osx_release == (10, 9) and QT_VERSION < 0x40806:
-            # Mavericks
-            QFont.insertSubstitution(".Lucida Grande UI", "Lucida Grande")
+def fix_macos_nswindow_tabbing():
+    """
+    Disable automatic NSWindow tabbing on macOS Sierra and higher.
+
+    See QTBUG-61707
+    """
+    import ctypes
+    import ctypes.util
+    import platform
+
+    if sys.platform != "darwin":
+        return
+    ver, _, _ = platform.mac_ver()
+    ver = tuple(map(int, ver.split(".")[:2]))
+    if ver < (10, 12):
+        return
+
+    c_char_p, c_void_p = ctypes.c_char_p, ctypes.c_void_p
+    id = Sel = Class = c_void_p
+
+    def annotate(func, restype, argtypes):
+        func.restype = restype
+        func.argtypes = argtypes
+        return func
+    try:
+        libobjc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("libobjc"))
+        # Load AppKit.framework which contains NSWindow class
+        # pylint: disable=unused-variable
+        AppKit = ctypes.cdll.LoadLibrary(ctypes.util.find_library("AppKit"))
+        objc_getClass = annotate(
+            libobjc.objc_getClass, Class, [c_char_p])
+        objc_msgSend = annotate(
+            libobjc.objc_msgSend, id, [id, Sel])
+        sel_registerName = annotate(
+            libobjc.sel_registerName, Sel, [c_char_p])
+        class_getClassMethod = annotate(
+            libobjc.class_getClassMethod, c_void_p, [Class, Sel])
+    except (OSError, AttributeError):
+        return
+
+    NSWindow = objc_getClass(b"NSWindow")
+    if NSWindow is None:
+        return
+    setAllowsAutomaticWindowTabbing = sel_registerName(
+        b'setAllowsAutomaticWindowTabbing:'
+    )
+    # class_respondsToSelector does not work (for class methods)
+    if class_getClassMethod(NSWindow, setAllowsAutomaticWindowTabbing):
+        # [NSWindow setAllowsAutomaticWindowTabbing: NO]
+        objc_msgSend(
+            NSWindow,
+            setAllowsAutomaticWindowTabbing,
+            ctypes.c_bool(False),
+        )
 
 
 def fix_win_pythonw_std_stream():
@@ -82,6 +105,34 @@ def fix_win_pythonw_std_stream():
             sys.stderr = open(os.devnull, "w")
 
 
+default_proxies = None
+
+
+def fix_set_proxy_env():
+    """
+    Set http_proxy/https_proxy environment variables (for requests, pip, ...)
+    from user-specified settings or, if none, from system settings on OS X
+    and from registry on Windos.
+    """
+    # save default proxies so that setting can be reset
+    global default_proxies
+    if default_proxies is None:
+        default_proxies = getproxies()  # can also read windows and macos settings
+
+    settings = QSettings()
+    proxies = getproxies()
+    for scheme in set(["http", "https"]) | set(proxies):
+        from_settings = settings.value("network/" + scheme + "-proxy", "", type=str)
+        from_default = default_proxies.get(scheme, "")
+        env_scheme = scheme + '_proxy'
+        if from_settings:
+            os.environ[env_scheme] = from_settings
+        elif from_default:
+            os.environ[env_scheme] = from_default  # crucial for windows/macos support
+        else:
+            os.environ.pop(env_scheme, "")
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -97,9 +148,6 @@ def main(argv=None):
                       action="store_true",
                       help="Force full widget discovery "
                            "(invalidate cache)")
-    parser.add_option("--clear-widget-settings",
-                      action="store_true",
-                      help="Remove stored widget setting")
     parser.add_option("--no-welcome",
                       action="store_true",
                       help="Don't show welcome dialog.")
@@ -138,8 +186,11 @@ def main(argv=None):
     # and write to the old file descriptors)
     fix_win_pythonw_std_stream()
 
-    # Try to fix fonts on OSX Mavericks/Yosemite, ...
-    fix_osx_private_font()
+    # Set http_proxy environment variable(s) for some clients
+    fix_set_proxy_env()
+
+    # Try to fix macOS automatic window tabbing (Sierra and later)
+    fix_macos_nswindow_tabbing()
 
     # File handler should always be at least INFO level so we need
     # the application root level to be at least at INFO.
@@ -158,9 +209,7 @@ def main(argv=None):
         except (ImportError, AttributeError):
             pass
         else:
-#             config.default = cfg
-            config.set_default(cfg)
-
+            config.set_default(cfg())
             log.info("activating %s", options.config)
 
     log.info("Starting 'Orange Canvas' application.")
@@ -182,10 +231,6 @@ def main(argv=None):
         qt_argv += shlex.split(options.qt)
 
     qt_argv += args
-
-    if options.clear_widget_settings:
-        log.debug("Clearing widget settings")
-        shutil.rmtree(config.widget_settings_dir(), ignore_errors=True)
 
     if QT_VERSION >= 0x50600:
         CanvasApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)

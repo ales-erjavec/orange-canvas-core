@@ -4,8 +4,6 @@ import sys
 import warnings
 import traceback
 
-import six
-
 from AnyQt.QtWidgets import QWidget, QPlainTextEdit, QVBoxLayout, QSizePolicy
 from AnyQt.QtGui import (
     QTextCursor, QTextCharFormat, QFont, QTextOption, QFontDatabase
@@ -123,8 +121,8 @@ class OutputView(QWidget):
         assert QThread.currentThread() is self.thread()
         self.writeWithFormat("".join(lines), charformat)
 
-    def formated(self, color=None, background=None, weight=None,
-                 italic=None, underline=None, font=None):
+    def formatted(self, color=None, background=None, weight=None,
+                  italic=None, underline=None, font=None):
         """
         Return a formatted file like object proxy.
         """
@@ -133,6 +131,12 @@ class OutputView(QWidget):
             italic, underline, font
         )
         return Formatter(self, charformat)
+
+    def formated(self, *args, **kwargs):
+        warnings.warn(
+            "'Use 'formatted'", DeprecationWarning, stacklevel=2
+        )
+        return self.formatted(*args, **kwargs)
 
 
 def update_char_format(baseformat, color=None, background=None, weight=None,
@@ -204,8 +208,8 @@ class Formatter(QObject):
     def flush(self):
         self.outputview.flush()
 
-    def formated(self, color=None, background=None, weight=None,
-                 italic=None, underline=None, font=None):
+    def formatted(self, color=None, background=None, weight=None,
+                  italic=None, underline=None, font=None):
         charformat = update_char_format(self.charformat, color, background,
                                         weight, italic, underline, font)
         return Formatter(self.outputview, charformat)
@@ -218,6 +222,12 @@ class Formatter(QObject):
         self.charformat = None
         self.setParent(None)
 
+    def formated(self, *args, **kwargs):
+        warnings.warn(
+            "Use 'formatted'", DeprecationWarning, stacklevel=2
+        )
+        return self.formatted(*args, **kwargs)
+
 
 class formater(Formatter):
     def __init__(self, *args, **kwargs):
@@ -229,20 +239,43 @@ class formater(Formatter):
 
 
 class TextStream(QObject):
-    stream = Signal(six.text_type)
+    stream = Signal(str)
     flushed = Signal()
+    __closed = False
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
 
+    def close(self):
+        self.__closed = True
+
+    def closed(self):
+        return self.__closed
+
+    def isatty(self):
+        return False
+
     def write(self, string):
+        if self.__closed:
+            raise ValueError("write operation on a closed stream.")
         self.stream.emit(string)
 
     def writelines(self, lines):
+        if self.__closed:
+            raise ValueError("write operation on a closed stream.")
         self.stream.emit("".join(lines))
 
     def flush(self):
+        if self.__closed:
+            raise ValueError("write operation on a closed stream.")
         self.flushed.emit()
+
+    def writeable(self):
+        return True
+
+    def readable(self):
+        return False
+
 
 
 class ExceptHook(QObject):
@@ -250,7 +283,7 @@ class ExceptHook(QObject):
     handledException = Signal(tuple)
 
     def __init__(self, parent=None, stream=None, **kwargs):
-        super(ExceptHook, self).__init__(parent, **kwargs)
+        super().__init__(parent, **kwargs)
         self.stream = stream
 
     def __call__(self, exc_type, exc_value, tb):
@@ -265,8 +298,8 @@ class ExceptHook(QObject):
             text = traceback.format_exception(exc_type, exc_value, tb)
             text.insert(0, '{:-^79}\n'.format(' ' + header + ' '))
             text.append('-' * 79 + '\n')
-            stream.writelines(text)
             try:
+                stream.writelines(text)
                 stream.flush()
             except Exception:
                 pass
