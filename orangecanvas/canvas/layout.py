@@ -8,8 +8,7 @@ import typing
 from typing import Optional, Any, List
 
 from AnyQt.QtWidgets import QGraphicsObject, QApplication, QGraphicsItem
-from AnyQt.QtCore import QRectF, QLineF, QEvent, QPointF
-from AnyQt import sip
+from AnyQt.QtCore import QRectF, QLineF, QEvent, QPointF, isdeleted
 
 from .items import (
     NodeItem, LinkItem, NodeAnchorItem, SourceAnchorItem, SinkAnchorItem
@@ -71,7 +70,7 @@ class AnchorLayout(QGraphicsObject):
         anchors = set(self.__invalidatedAnchors)
 
         for anchor_item in anchors:
-            if sip.isdeleted(anchor_item):
+            if isdeleted(anchor_item):
                 continue
 
             points = anchor_item.anchorPoints()

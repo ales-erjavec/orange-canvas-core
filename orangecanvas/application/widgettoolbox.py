@@ -343,7 +343,7 @@ class WidgetToolBox(ToolBox):
 
         byte_array = QByteArray()
         stream = QDataStream(byte_array, QIODevice.WriteOnly)
-        stream.writeInt(version)
+        stream.writeInt32(version)
         stream.writeQStringList(expanded)
 
         return byte_array
@@ -357,7 +357,7 @@ class WidgetToolBox(ToolBox):
 
         """
         stream = QDataStream(state, QIODevice.ReadOnly)
-        version = stream.readInt()
+        version = stream.readInt32()
         if version == 2:
             expanded = stream.readQStringList()
             for action in map(self.tabAction, range(self.count())):

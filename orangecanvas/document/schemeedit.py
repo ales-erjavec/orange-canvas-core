@@ -268,14 +268,13 @@ class SchemeEditWidget(QWidget):
             objectName="new-text-action",
             toolTip=self.tr("Add a text annotation to the workflow."),
             checkable=True,
-            toggled=self.__toggleNewTextAnnotation,
         )
+        self.__newTextAnnotationAction.toggled.connect(self.__toggleNewTextAnnotation)
 
         # Create a font size menu for the new annotation action.
         self.__fontMenu = QMenu("Font Size", self)
-        self.__fontActionGroup = group = QActionGroup(
-            self, triggered=self.__onFontSizeTriggered
-        )
+        self.__fontActionGroup = group = QActionGroup(self)
+        group.triggered.connect(self.__onFontSizeTriggered)
 
         def font(size):
             f = QFont(self.font())
@@ -297,14 +296,15 @@ class SchemeEditWidget(QWidget):
             objectName="new-arrow-action",
             toolTip=self.tr("Add a arrow annotation to the workflow."),
             checkable=True,
-            toggled=self.__toggleNewArrowAnnotation,
+        )
+        self.__newArrowAnnotationAction.toggled.connect(
+            self.__toggleNewArrowAnnotation
         )
 
         # Create a color menu for the arrow annotation action
         self.__arrowColorMenu = QMenu("Arrow Color",)
-        self.__arrowColorActionGroup = group = QActionGroup(
-            self, triggered=self.__onArrowColorTriggered
-        )
+        self.__arrowColorActionGroup = group = QActionGroup(self)
+        group.triggered.connect(self.__onArrowColorTriggered)
 
         def color_icon(color):
             icon = QIcon()
@@ -392,7 +392,10 @@ class SchemeEditWidget(QWidget):
         )
         self.__linkEnableAction = QAction(
             self.tr("Enabled"), self, objectName="link-enable-action",
-            triggered=self.__toggleLinkEnabled, checkable=True,
+            checkable=True,
+        )
+        self.__linkEnableAction.triggered[bool].connect(
+            self.__toggleLinkEnabled
         )
 
         self.__linkRemoveAction = QAction(

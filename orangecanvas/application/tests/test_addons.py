@@ -213,7 +213,7 @@ class TestAddonManagerDialog(QAppTestCase):
             )
             loop = QEventLoop()
             f.add_done_callback(qinvoke(lambda f: loop.quit(), loop))
-            loop.exec()
+            loop.exec_()
             items = w.items()
             self.assertEqual(items, [Available(query_res[1].installable)])
 

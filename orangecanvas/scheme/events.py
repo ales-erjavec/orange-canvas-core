@@ -8,7 +8,7 @@ instance.
 
 """
 import typing
-from typing import Any, Union, cast
+from typing import Any, Union
 
 from AnyQt.QtCore import QEvent
 
@@ -92,7 +92,7 @@ class WorkflowEvent(QEvent):
 
     def __init__(self, etype):
         # type: (_EType) -> None
-        super().__init__(cast(QEvent.Type, etype))
+        super().__init__(QEvent.Type(etype))
 
 
 class NodeEvent(WorkflowEvent):

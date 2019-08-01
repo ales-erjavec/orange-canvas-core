@@ -226,7 +226,7 @@ class DropShadowFrame(QWidget):
         assert self.__widget is not None
         widget = self.__widget
         parent = self.__widgetParent
-        radius = self.radius_
+        radius = self.__radius
         offset = self.__offset
         pos = widget.pos()
         if parent is not None and parent != widget.parentWidget():

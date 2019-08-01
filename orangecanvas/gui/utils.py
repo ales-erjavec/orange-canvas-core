@@ -23,7 +23,7 @@ from AnyQt.QtGui import (
     QTextCharFormat, QFont
 )
 from AnyQt.QtCore import Qt, QPointF, QPoint, QRect, QRectF, Signal, QEvent
-from AnyQt import sip
+from AnyQt.QtCore import cast
 
 
 @contextmanager
@@ -261,9 +261,9 @@ def gradient_darker(grad, factor):
     """
     if type(grad) is QGradient:
         if grad.type() == QGradient.LinearGradient:
-            grad = sip.cast(grad, QLinearGradient)
+            grad = cast(grad, QLinearGradient)
         elif grad.type() == QGradient.RadialGradient:
-            grad = sip.cast(grad, QRadialGradient)
+            grad = cast(grad, QRadialGradient)
 
     if isinstance(grad, QLinearGradient):
         new_grad = QLinearGradient(grad.start(), grad.finalStop())

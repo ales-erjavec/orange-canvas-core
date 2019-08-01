@@ -80,7 +80,7 @@ class DynamicResizeToolBar(QToolBar):
 def uniform_layout_helper(items, contents_rect, expanding, spacing):
     # type: (List[QWidget], QRect, Qt.Orientation, int) -> None
     """Set fixed sizes on 'items' so they can be lay out in
-    contents rect anf fil the whole space.
+    contents rect and fill the whole space.
 
     """
     if len(items) == 0:

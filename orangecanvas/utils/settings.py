@@ -50,7 +50,7 @@ class SettingChangedEvent(QEvent):
         """
         Initialize the event instance
         """
-        super().__init__(etype)
+        super().__init__(QEvent.Type(etype))
         self.__key = key
         self.__value = value
         self.__oldValue = oldValue

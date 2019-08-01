@@ -30,7 +30,9 @@ from AnyQt.QtGui import (
 )
 from AnyQt.QtCore import (
     Qt, QObject, QEvent, QSize, QUrl, QFile, QByteArray, QFileInfo,
-    QSettings, QStandardPaths, QAbstractItemModel, QMimeData, QT_VERSION)
+    QSettings, QStandardPaths, QAbstractItemModel, QMimeData, QT_VERSION
+)
+from AnyQt.QtCore import Property, Signal, Slot
 
 try:
     from AnyQt.QtWebEngineWidgets import QWebEngineView
@@ -41,11 +43,6 @@ except ImportError:
         from AnyQt.QtNetwork import QNetworkDiskCache
     except ImportError:
         QWebView = None   # type: ignore
-
-
-from AnyQt.QtCore import (
-    pyqtProperty as Property, pyqtSignal as Signal
-)
 
 from ..scheme import Scheme, IncompatibleChannelTypeError, SchemeNode
 from ..scheme import readwrite
@@ -378,25 +375,27 @@ class CanvasMainWindow(QMainWindow):
             self.tr("New"), self,
             objectName="action-new",
             toolTip=self.tr("Open a new workflow."),
-            triggered=self.new_workflow_window,
             shortcut=QKeySequence.New,
             icon=load_styled_svg_icon("New.svg")
         )
+        self.new_action.triggered.connect(self.new_workflow_window)
+
         self.open_action = QAction(
             self.tr("Open"), self,
             objectName="action-open",
             toolTip=self.tr("Open a workflow."),
-            triggered=self.open_scheme,
             shortcut=QKeySequence.Open,
             icon=load_styled_svg_icon("Open.svg")
         )
+        self.open_action.triggered.connect(self.open_scheme)
+
         self.open_and_freeze_action = QAction(
             self.tr("Open and Freeze"), self,
             objectName="action-open-and-freeze",
             toolTip=self.tr("Open a new workflow and freeze signal "
                             "propagation."),
-            triggered=self.open_and_freeze_scheme
         )
+        self.open_and_freeze_action.triggered.connect(self.open_and_freeze_scheme)
         self.open_and_freeze_action.setShortcut(
             QKeySequence("Ctrl+Alt+O")
         )
@@ -496,9 +495,11 @@ class CanvasMainWindow(QMainWindow):
         # Action group for for recent scheme actions
         self.recent_scheme_action_group = QActionGroup(
             self, objectName="recent-action-group",
-            triggered=self._on_recent_scheme_action
         )
         self.recent_scheme_action_group.setExclusive(False)
+        self.recent_scheme_action_group.triggered.connect(
+            self._on_recent_scheme_action
+        )
         self.recent_action = QAction(
             self.tr("Browse Recent"), self,
             objectName="recent-action",
@@ -568,19 +569,20 @@ class CanvasMainWindow(QMainWindow):
             objectName="signal-freeze-action",
             checkable=True,
             toolTip=self.tr("Freeze signal propagation (Shift+F)"),
-            toggled=self.set_signal_freeze,
             icon=load_styled_svg_icon("Pause.svg")
         )
+        self.freeze_action.toggled.connect(self.set_signal_freeze)
 
         self.toggle_tool_dock_expand = QAction(
             self.tr("Expand Tool Dock"), self,
             objectName="toggle-tool-dock-expand",
             checkable=True,
             shortcut=QKeySequence("Ctrl+Shift+D"),
-            triggered=self.set_tool_dock_expanded
         )
         self.toggle_tool_dock_expand.setChecked(True)
-
+        self.toggle_tool_dock_expand.triggered[bool].connect(
+            self.set_tool_dock_expanded
+        )
         # Gets assigned in setup_ui (the action is defined in CanvasToolDock)
         # TODO: This is bad (should be moved here).
         self.dock_help_action = None
@@ -2163,6 +2165,7 @@ class CanvasMainWindow(QMainWindow):
         settings = QSettings()
         QSettings_writeArray(settings, "mainwindow/recent-items", [])
 
+    @Slot(QAction)
     def _on_recent_scheme_action(self, action):
         # type: (QAction) -> None
         """

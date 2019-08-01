@@ -368,7 +368,7 @@ class SchemeNode(QObject):
         return bool(self.__state & flag)
 
     def __str__(self):
-        return "SchemeNode(description_id=%r, title=%r, ...)" % \
+        return "SchemeNode(description_id=%s, title=%r, ...)" % \
                 (str(self.description.id), self.title)
 
     def __repr__(self):

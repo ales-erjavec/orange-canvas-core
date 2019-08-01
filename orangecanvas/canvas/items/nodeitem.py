@@ -23,14 +23,14 @@ from AnyQt.QtWidgets import (
 )
 from AnyQt.QtGui import (
     QPen, QBrush, QColor, QPalette, QIcon, QPainter, QPainterPath,
-    QPainterPathStroker, QConicalGradient,
-    QTransform)
+    QPainterPathStroker, QConicalGradient, QTransform
+)
 from AnyQt.QtCore import (
     Qt, QEvent, QPointF, QRectF, QRect, QSize, QElapsedTimer, QTimer,
     QPropertyAnimation, QEasingCurve, QObject, QVariantAnimation,
-    QParallelAnimationGroup, Slot
+    QParallelAnimationGroup
 )
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from AnyQt.QtCore import Signal, Property, Slot
 
 from .graphicspathobject import GraphicsPathObject
 from .graphicstextitem import GraphicsTextItem, GraphicsTextEdit
@@ -820,6 +820,7 @@ class NodeAnchorItem(GraphicsPathObject):
 
         return anchor
 
+    @Slot(QObject)
     def __onAnchorDestroyed(self, anchor):
         # type: (QObject) -> None
         try:

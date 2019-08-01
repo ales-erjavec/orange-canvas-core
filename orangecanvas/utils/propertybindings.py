@@ -45,9 +45,9 @@ def find_notifier(obj, name):
     if not prop_meta.hasNotifySignal():
         raise TypeError("%s does not have a notifier signal." %
                         name)
-
     notifier = prop_meta.notifySignal()
-    name = bytes(notifier.methodSignature()).decode("utf-8").split("(")[0]
+    sig = notifier.methodSignature()
+    name = bytes(sig.data()).decode("utf-8").split("(")[0]
     return name
 
 
@@ -58,6 +58,8 @@ class AbstractBoundProperty(QObject):
 
     changed = Signal([], [object])
     """Emited when the property changes"""
+
+    obj = None
 
     def __init__(self, obj, propertyName, parent=None):
         # type: (QObject, str, Optional[QObject]) -> None
@@ -98,6 +100,7 @@ class AbstractBoundProperty(QObject):
         self.changed.emit()
         self.changed[object].emit(val)
 
+    @Slot()
     def _on_destroyed(self):
         # type: () -> None
         self.obj = None
@@ -192,6 +195,7 @@ class PropertyBindingExpr(AbstractBoundProperty):
     def bindTo(self, source):
         raise NotImplementedError("Cannot bind an expression")
 
+    @Slot()
     def _on_destroyed(self):
         # type: () -> None
         source = self.sender()
@@ -220,6 +224,7 @@ class PropertyBinding(AbstractBoundProperty):
 
         self.notifierSignal = signal
 
+    @Slot()
     def _on_destroyed(self):
         self.notifierSignal = None
         super()._on_destroyed()
