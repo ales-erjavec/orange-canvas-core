@@ -130,3 +130,13 @@ def temp_named_file(
         yield name
     finally:
         os.remove(name)
+
+
+@contextmanager
+def temp_named_dir(
+        suffix: Optional[str] = None,
+        prefix: Optional[str] = None,
+        dir: Optional[str] = None
+) -> Generator[str, None, None]:
+    with tempfile.TemporaryDirectory(suffix, prefix, dir) as name:
+        yield name

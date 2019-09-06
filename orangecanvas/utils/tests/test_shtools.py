@@ -1,6 +1,8 @@
 import os
 
-from orangecanvas.utils.shtools import python_process, temp_named_file
+from orangecanvas.utils.shtools import (
+    python_process, temp_named_file, temp_named_dir
+)
 
 import unittest
 
@@ -23,3 +25,8 @@ class Test(unittest.TestCase):
                     c = f.read()
                     self.assertEqual(c, content)
             self.assertFalse(os.path.exists(fname))
+
+    def test_temp_named_dir(self):
+        with temp_named_dir() as name:
+            self.assertTrue(os.path.isdir(name))
+        self.assertFalse(os.path.exists(name))
