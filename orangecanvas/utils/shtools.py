@@ -6,6 +6,13 @@ import tempfile
 import subprocess
 from contextlib import contextmanager
 
+from ._open_locked_impl import open_locked
+
+__all__ = [
+    "python_process", "create_process", "temp_named_file", "temp_named_dir",
+    "open_locked"
+]
+
 
 def python_process(
         args: List[str],
@@ -140,3 +147,4 @@ def temp_named_dir(
 ) -> Generator[str, None, None]:
     with tempfile.TemporaryDirectory(suffix, prefix, dir) as name:
         yield name
+

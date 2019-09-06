@@ -29,6 +29,7 @@ INSTALL_REQUIRES = (
     "requests",
     "cachecontrol[filecache]",
     "pip>=18.0",
+    'pywin32;platform_system=="Windows"'
 )
 
 
