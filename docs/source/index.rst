@@ -13,7 +13,7 @@ Contents:
 
    orangecanvas/overview
    orangecanvas/index
-
+   userguide/annotations
 
 Indices and tables
 ==================
@@ -21,4 +21,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

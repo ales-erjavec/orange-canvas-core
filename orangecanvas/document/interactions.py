@@ -359,6 +359,15 @@ class NewLinkAction(UserInteraction):
         else:
             return None
 
+    __helpText = (
+        '<h3>Create new link</h3>'
+        '<p>Drag a link to an existing node or release on an empty spot to'
+        'create a new node.</p>'
+        '<p>Hold <kbd>Shift</kbd> when releasing the mouse button to edit'
+        'connections.</p>'
+        '<a href="help:orange-canvas-core?topic=create-new-links">More ...</a>'
+    )
+
     def mousePressEvent(self, event):
         # type: (QGraphicsSceneMouseEvent) -> bool
         anchor_item = self.scene.item_at(
@@ -377,15 +386,7 @@ class NewLinkAction(UserInteraction):
             event.accept()
 
             helpevent = QuickHelpTipEvent(
-                self.tr("Create a new link"),
-                self.tr('<h3>Create new link</h3>'
-                        '<p>Drag a link to an existing node or release on '
-                        'an empty spot to create a new node.</p>'
-                        '<p>Hold Shift when releasing the mouse button to '
-                        'edit connections.</p>'
-#                        '<a href="help://orange-canvas/create-new-links">'
-#                        'More ...</a>'
-                        )
+                self.tr("Create a new link"), self.tr(self.__helpText)
             )
             QCoreApplication.postEvent(self.document, helpevent)
             return True
@@ -718,7 +719,10 @@ class NewLinkAction(UserInteraction):
         self.cleanup()
         # Remove the help tip set in mousePressEvent
         self.macro = None
-        helpevent = QuickHelpTipEvent("", "")
+        helpevent = QuickHelpTipEvent(
+            "", self.tr(self.__helpText), QuickHelpTipEvent.Temporary,
+            timeout=3000
+        )
         QCoreApplication.postEvent(self.document, helpevent)
         super().end()
 
@@ -1160,20 +1164,21 @@ class NewArrowAnnotation(UserInteraction):
         self.color = "red"
         self.cancelOnEsc = True
 
+    __helpText = (
+        '<h3>New arrow annotation</h3>'
+        '<p>Click and drag to create a new arrow annotation</p>'
+        '<a href="help:orange-canvas-core?topic=annotating-the-workflow">'
+        'More ...</a>'
+    )
+
     def start(self):
         # type: () -> None
         self.document.view().setCursor(Qt.CrossCursor)
-
         helpevent = QuickHelpTipEvent(
             self.tr("Click and drag to create a new arrow"),
-            self.tr('<h3>New arrow annotation</h3>'
-                    '<p>Click and drag to create a new arrow annotation</p>'
-#                    '<a href="help://orange-canvas/arrow-annotations>'
-#                    'More ...</a>'
-                    )
+            self.tr(self.__helpText)
         )
         QCoreApplication.postEvent(self.document, helpevent)
-
         super().start()
 
     def setColor(self, color):
@@ -1281,6 +1286,14 @@ class NewTextAnnotation(UserInteraction):
         self.font = document.font()  # type: QFont
         self.cancelOnEsc = True
 
+    __helpText = (
+        '<h3>New text annotation</h3>'
+        '<p>Click (and drag to resize) on the canvas to create a new text '
+        'annotation item.</p>'
+        '<a href="help:orange-canvas-core?topic=annotating-the-workflow">'
+        'More ...</a>'
+    )
+
     def setFont(self, font):
         # type: (QFont) -> None
         self.font = QFont(font)
@@ -1288,18 +1301,11 @@ class NewTextAnnotation(UserInteraction):
     def start(self):
         # type: () -> None
         self.document.view().setCursor(Qt.CrossCursor)
-
         helpevent = QuickHelpTipEvent(
             self.tr("Click to create a new text annotation"),
-            self.tr('<h3>New text annotation</h3>'
-                    '<p>Click (and drag to resize) on the canvas to create '
-                    'a new text annotation item.</p>'
-#                    '<a href="help://orange-canvas/text-annotations">'
-#                    'More ...</a>'
-                    )
+            self.tr(self.__helpText)
         )
         QCoreApplication.postEvent(self.document, helpevent)
-
         super().start()
 
     def createNewAnnotation(self, rect):

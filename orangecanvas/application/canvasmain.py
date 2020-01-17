@@ -2310,7 +2310,11 @@ class CanvasMainWindow(QMainWindow):
                     log.info("No help topic found for %r", url)
                     message_information(
                         self.tr("There is no documentation for this widget."),
-                        parent=self)
+                        parent=self
+                    )
+            elif url.scheme() == "help":
+                url = self.help.resolve(url)
+                self.show_help(url)
             elif url.scheme() == "action" and url.path():
                 action = self.findChild(QAction, url.path())
                 if action is not None:

@@ -21,6 +21,7 @@ import pkg_resources
 from AnyQt.QtCore import QObject, QUrl, QDir
 
 from . import provider
+from ..utils import assocv
 
 if typing.TYPE_CHECKING:
     from ..registry import WidgetRegistry, WidgetDescription
@@ -121,6 +122,26 @@ class HelpManager(QObject):
             return provider.search(desc)
         else:
             raise KeyError(desc_id)
+
+    def resolve(self, url: QUrl):
+        self.initialize()
+        assert url.scheme().lower() == "help"
+
+        path = url.path()
+        try:
+            dist = pkg_resources.get_distribution(path)
+        except pkg_resources.ResolutionError:
+            raise LookupError
+
+        provider = get_help_provider_for_distribution(dist)
+        if provider is not None:
+            import types
+            query = url.query()
+            qs = urllib.parse.parse_qsl(query)
+            topic = assocv(qs, "topic")
+            if topic is not None:
+                rs = provider.search(types.SimpleNamespace(help_ref=topic[1]))
+                return rs
 
 
 def get_by_id(registry, descriptor_id):
@@ -450,6 +471,8 @@ def get_help_provider_for_distribution(dist):
     if dist.project_name in _providers_cache:
         return _providers_cache[dist.project_name]
     entry_points = dist.get_entry_map().get("orange.canvas.help", {})
+    if not entry_points:
+        entry_points = dist.get_entry_map().get("orangecanvas.help", {})
     provider = None
     for name, entry_point in entry_points.items():
         create = _providers.get(name, None)
