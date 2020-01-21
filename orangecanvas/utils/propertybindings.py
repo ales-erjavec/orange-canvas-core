@@ -12,9 +12,9 @@ from collections import defaultdict
 from functools import reduce
 from operator import add
 
-from AnyQt.QtCore import QObject, QEvent, QMetaProperty
+from PyQt5.QtCore import QObject, QEvent, QMetaProperty
 
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
 
 from typing import Optional, Any, List, Dict, Tuple
 

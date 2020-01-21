@@ -5,11 +5,11 @@ Scheme Info editor widget.
 import typing
 from typing import Optional
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QDialog, QLabel, QTextEdit, QCheckBox, QFormLayout,
     QVBoxLayout, QHBoxLayout, QDialogButtonBox, QSizePolicy
 )
-from AnyQt.QtCore import Qt
+from PyQt5.QtCore import Qt
 
 from ..gui.lineedit import LineEdit
 from ..gui.utils import StyledWidget_paintEvent, StyledWidget

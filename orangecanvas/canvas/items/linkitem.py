@@ -10,14 +10,17 @@ from xml.sax.saxutils import escape
 import typing
 from typing import List, Tuple, Optional, Any
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QGraphicsItem, QGraphicsPathItem, QGraphicsWidget, QGraphicsTextItem,
     QGraphicsDropShadowEffect, QGraphicsSceneHoverEvent,
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QPen, QBrush, QColor, QPainterPath, QTransform, QPalette,
 )
-from AnyQt.QtCore import Qt, QPointF, QRectF, QLineF, QEvent, QPropertyAnimation, Signal, QTimer
+from PyQt5.QtCore import (
+    Qt, QPointF, QRectF, QLineF, QEvent, QPropertyAnimation, QTimer
+)
+from PyQt5.QtCore import pyqtSignal as Signal
 
 from .nodeitem import AnchorPoint, SHADOW_COLOR
 from .utils import stroke_path

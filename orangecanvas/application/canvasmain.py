@@ -19,33 +19,33 @@ from typing import (
 
 import pkg_resources
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QAction, QActionGroup, QMenu, QMenuBar, QDialog,
     QFileDialog, QMessageBox, QVBoxLayout, QSizePolicy, QToolBar, QToolButton,
     QDockWidget, QApplication, QShortcut, QPlainTextEdit,
     QPlainTextDocumentLayout, QFileIconProvider
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QColor, QIcon, QDesktopServices, QKeySequence, QTextDocument,
     QWhatsThisClickedEvent, QShowEvent, QCloseEvent
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QObject, QEvent, QSize, QUrl, QFile, QByteArray, QFileInfo,
     QSettings, QStandardPaths, QAbstractItemModel, QT_VERSION
 )
 
 try:
-    from AnyQt.QtWebEngineWidgets import QWebEngineView
+    from PyQt5.QtWebEngineWidgets import QWebEngineView
 except ImportError:
     QWebEngineView = None  # type: ignore
     try:
-        from AnyQt.QtWebKitWidgets import QWebView
-        from AnyQt.QtNetwork import QNetworkDiskCache
+        from PyQt5.QtWebKitWidgets import QWebView
+        from PyQt5.QtNetwork import QNetworkDiskCache
     except ImportError:
         QWebView = None   # type: ignore
 
 
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     pyqtProperty as Property, pyqtSignal as Signal
 )
 

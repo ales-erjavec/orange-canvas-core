@@ -1,9 +1,9 @@
 from typing import Any, Optional, Iterable
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QListView, QSizePolicy, QStyle, QStyleOptionViewItem, QWidget
 )
-from AnyQt.QtCore import Qt, QSize, QModelIndex
+from PyQt5.QtCore import Qt, QSize, QModelIndex
 
 
 class LinearIconView(QListView):

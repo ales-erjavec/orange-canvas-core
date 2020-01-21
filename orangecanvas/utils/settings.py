@@ -13,8 +13,8 @@ from typing import List, Dict, Tuple, Union, Any, Type, Optional
 
 from collections import namedtuple, MutableMapping
 
-from AnyQt.QtCore import QObject, QEvent, QCoreApplication, QSettings
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtCore import QObject, QEvent, QCoreApplication, QSettings
+from PyQt5.QtCore import pyqtSignal as Signal
 
 
 log = logging.getLogger(__name__)

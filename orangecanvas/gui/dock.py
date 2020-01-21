@@ -8,12 +8,12 @@ A dock widget that can be a collapsed/expanded.
 """
 from typing import Optional, Any
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QDockWidget, QAbstractButton, QSizePolicy, QStyle, QWidget, QWIDGETSIZE_MAX
 )
-from AnyQt.QtGui import QIcon, QTransform
-from AnyQt.QtCore import Qt, QEvent, QObject
-from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
+from PyQt5.QtGui import QIcon, QTransform
+from PyQt5.QtCore import Qt, QEvent, QObject
+from PyQt5.QtCore import pyqtProperty as Property, pyqtSignal as Signal
 
 from .stackedwidget import AnimatedStackedWidget
 

@@ -7,10 +7,10 @@ from xml.sax.saxutils import escape
 
 from typing import Optional, Any
 
-from AnyQt.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
-from AnyQt.QtSvg import QSvgWidget
-from AnyQt.QtCore import Qt, QByteArray, QModelIndex, QAbstractItemModel
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
+from PyQt5.QtSvg import QSvgWidget
+from PyQt5.QtCore import Qt, QByteArray, QModelIndex, QAbstractItemModel
+from PyQt5.QtCore import pyqtSignal as Signal
 
 from ..gui.dropshadow import DropShadowFrame
 from ..gui.iconview import LinearIconView

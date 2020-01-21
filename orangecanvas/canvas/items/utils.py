@@ -5,12 +5,12 @@ from operator import itemgetter
 import typing
 from typing import List, Iterable, Optional, Callable, Any, Union
 
-from AnyQt.QtCore import QPointF
-from AnyQt.QtGui import (
+from PyQt5.QtCore import QPointF
+from PyQt5.QtGui import (
     QColor, QRadialGradient, QPainterPathStroker, QPainterPath, QPen
 )
 
-from AnyQt.QtWidgets import QGraphicsItem
+from PyQt5.QtWidgets import QGraphicsItem
 
 if typing.TYPE_CHECKING:
     T = typing.TypeVar("T")

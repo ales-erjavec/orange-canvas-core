@@ -10,8 +10,8 @@ import typing
 from traceback import format_exception_only
 from typing import List, Tuple, Union, Optional, Iterable
 
-from AnyQt.QtCore import QObject, QCoreApplication
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtCore import QObject, QCoreApplication
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from ..registry.description import normalize_type_simple
 from ..utils import type_lookup

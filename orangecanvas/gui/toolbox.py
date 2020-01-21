@@ -11,18 +11,18 @@ from operator import eq, attrgetter
 import typing
 from typing import NamedTuple, List, Iterable, Optional, Any, Callable
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QFrame, QSizePolicy, QStyle, QStyleOptionToolButton,
     QStyleOptionToolBox, QScrollArea, QVBoxLayout, QToolButton,
     QAction, QActionGroup, QApplication, QAbstractButton, QWIDGETSIZE_MAX,
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QIcon, QFontMetrics, QPainter, QPalette, QBrush, QPen, QColor, QFont
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QObject, QSize, QRect, QPoint, QSignalMapper
 )
-from AnyQt.QtCore import Signal, Property
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from .utils import brush_darker
 

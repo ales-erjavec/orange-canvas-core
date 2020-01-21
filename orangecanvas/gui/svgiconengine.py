@@ -1,9 +1,9 @@
 from itertools import count
 
-from AnyQt.QtCore import Qt, QSize, QRect, QRectF
-from AnyQt.QtGui import QIconEngine, QIcon, QPixmap, QPainter, QPixmapCache
-from AnyQt.QtSvg import QSvgRenderer
-from AnyQt.QtWidgets import QStyleOption, QApplication
+from PyQt5.QtCore import Qt, QSize, QRect, QRectF
+from PyQt5.QtGui import QIconEngine, QIcon, QPixmap, QPainter, QPixmapCache
+from PyQt5.QtSvg import QSvgRenderer
+from PyQt5.QtWidgets import QStyleOption, QApplication
 
 _cache_id_gen = count()
 

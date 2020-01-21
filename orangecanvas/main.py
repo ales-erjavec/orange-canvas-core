@@ -18,8 +18,8 @@ from contextlib import ExitStack, redirect_stdout, redirect_stderr, closing
 
 import pkg_resources
 
-from AnyQt.QtGui import QFont, QColor, QPalette
-from AnyQt.QtCore import Qt, QDir, QSettings, QT_VERSION
+from PyQt5.QtGui import QFont, QColor, QPalette
+from PyQt5.QtCore import Qt, QDir, QSettings, QT_VERSION
 
 from .application.application import CanvasApplication
 from .application.canvasmain import CanvasMainWindow

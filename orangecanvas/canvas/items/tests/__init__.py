@@ -1,8 +1,8 @@
 """
 Tests for items
 """
-from AnyQt.QtWidgets import QGraphicsScene, QGraphicsView
-from AnyQt.QtGui import QPainter
+from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView
+from PyQt5.QtGui import QPainter
 
 from orangecanvas.gui.test import QAppTestCase
 

@@ -12,7 +12,7 @@ from typing import List, Tuple, Optional, Any
 from collections import namedtuple
 from xml.sax.saxutils import escape
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QApplication, QDialog, QVBoxLayout, QDialogButtonBox, QGraphicsScene,
     QGraphicsView, QGraphicsWidget, QGraphicsRectItem,
     QGraphicsLineItem, QGraphicsTextItem, QGraphicsLayoutItem,
@@ -20,10 +20,10 @@ from AnyQt.QtWidgets import (
     QGraphicsDropShadowEffect, QSizePolicy, QGraphicsItem, QWidget,
     QWIDGETSIZE_MAX
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QPalette, QPen, QPainter, QIcon, QColor, QPainterPathStroker
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QObject, QSize, QSizeF, QPointF, QRectF
 )
 

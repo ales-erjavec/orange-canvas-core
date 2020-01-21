@@ -3,11 +3,11 @@ A dialog widget for selecting an item.
 """
 from typing import Iterable, Optional, Any
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QDialogButtonBox, QSizePolicy
 )
-from AnyQt.QtCore import Qt, QStringListModel, QAbstractItemModel
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtCore import Qt, QStringListModel, QAbstractItemModel
+from PyQt5.QtCore import pyqtSignal as Signal
 
 from . import previewbrowser
 

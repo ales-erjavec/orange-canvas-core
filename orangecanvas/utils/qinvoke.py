@@ -1,7 +1,7 @@
-from typing import TypeVar, Callable, overload
-from AnyQt.QtCore import Qt, QObject, Signal
-
 from functools import wraps
+from typing import TypeVar, Callable, overload
+
+from PyQt5.QtCore import Qt, QObject, pyqtSignal as Signal
 
 
 class _InvokeEmitter(QObject):

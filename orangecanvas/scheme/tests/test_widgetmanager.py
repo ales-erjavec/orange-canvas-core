@@ -2,8 +2,8 @@ from PyQt5.QtCore import QEvent
 
 import unittest
 
-from AnyQt.QtWidgets import QWidget, QApplication, QAction
-from AnyQt.QtTest import QSignalSpy
+from PyQt5.QtWidgets import QWidget, QApplication, QAction
+from PyQt5.QtTest import QSignalSpy
 
 from orangecanvas.scheme import Scheme, NodeEvent, SchemeLink, LinkEvent
 from orangecanvas.scheme.widgetmanager import WidgetManager

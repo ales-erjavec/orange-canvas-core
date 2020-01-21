@@ -7,7 +7,7 @@ import logging
 import os
 from typing import List
 
-from AnyQt.QtCore import QCoreApplication, QSettings
+from PyQt5.QtCore import QCoreApplication, QSettings
 
 from orangecanvas import config
 from orangecanvas.scheme import SchemeNode, SchemeLink, Scheme

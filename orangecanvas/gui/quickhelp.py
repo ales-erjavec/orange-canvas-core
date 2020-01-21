@@ -1,9 +1,9 @@
 from typing import Any
 
-from AnyQt.QtWidgets import QTextBrowser
-from AnyQt.QtGui import QStatusTipEvent, QWhatsThisClickedEvent
-from AnyQt.QtCore import QObject, QCoreApplication, QEvent, QTimer, QUrl
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtWidgets import QTextBrowser
+from PyQt5.QtGui import QStatusTipEvent, QWhatsThisClickedEvent
+from PyQt5.QtCore import QObject, QCoreApplication, QEvent, QTimer, QUrl
+from PyQt5.QtCore import pyqtSignal as Signal
 
 
 class QuickHelp(QTextBrowser):

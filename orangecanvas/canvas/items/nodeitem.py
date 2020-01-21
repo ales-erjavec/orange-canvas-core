@@ -13,19 +13,19 @@ from xml.sax.saxutils import escape
 
 from typing import Dict, Any, Optional, List, Iterable, Tuple
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QGraphicsItem, QGraphicsObject, QGraphicsTextItem, QGraphicsWidget,
     QGraphicsDropShadowEffect, QStyle, QApplication, QGraphicsSceneMouseEvent,
     QGraphicsSceneContextMenuEvent, QStyleOptionGraphicsItem, QWidget, QGraphicsEllipseItem)
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QPen, QBrush, QColor, QPalette, QIcon, QPainter, QPainterPath,
     QPainterPathStroker, QTextDocument, QTextBlock, QTextLine
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QEvent, QPointF, QRectF, QRect, QSize, QTime, QTimer,
     QPropertyAnimation, QEasingCurve, QObject
 )
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from .graphicspathobject import GraphicsPathObject
 from .utils import saturated, radial_gradient

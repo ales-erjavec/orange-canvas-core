@@ -13,8 +13,8 @@ from urllib.parse import urljoin
 from html import parser
 from xml.etree.ElementTree import TreeBuilder, Element
 from weakref import ref
-from AnyQt.QtCore import QObject, QUrl, QSettings, pyqtSlot
-from AnyQt.QtNetwork import (
+from PyQt5.QtCore import QObject, QUrl, QSettings, pyqtSlot
+from PyQt5.QtNetwork import (
     QNetworkAccessManager, QNetworkDiskCache, QNetworkRequest, QNetworkReply
 )
 

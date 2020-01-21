@@ -1,7 +1,7 @@
 import sys
 
-from AnyQt.QtGui import QIcon
-from AnyQt.QtWidgets import (
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (
     QApplication, QLabel, QListView, QSpinBox, QTextBrowser, QStyle
 )
 

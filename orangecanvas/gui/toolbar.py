@@ -4,9 +4,9 @@ A custom toolbar with linear uniform size layout.
 """
 from typing import List
 
-from AnyQt.QtCore import Qt, QSize, QEvent, QRect
-from AnyQt.QtGui import QResizeEvent, QActionEvent
-from AnyQt.QtWidgets import QToolBar, QWidget
+from PyQt5.QtCore import Qt, QSize, QEvent, QRect
+from PyQt5.QtGui import QResizeEvent, QActionEvent
+from PyQt5.QtWidgets import QToolBar, QWidget
 
 
 class DynamicResizeToolBar(QToolBar):

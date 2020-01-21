@@ -7,7 +7,7 @@ import glob
 
 from typing import Tuple, Dict, Optional, List, IO
 
-from AnyQt.QtGui import QIcon
+from PyQt5.QtGui import QIcon
 
 
 def package_dirname(package):

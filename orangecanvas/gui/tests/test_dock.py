@@ -3,11 +3,11 @@ Tests for the DockWidget.
 
 """
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QMainWindow, QListView, QTextEdit, QToolButton,
     QHBoxLayout, QLabel
 )
-from AnyQt.QtCore import Qt, QTimer, QStringListModel
+from PyQt5.QtCore import Qt, QTimer, QStringListModel
 
 from .. import test
 from ..dock import CollapsibleDockWidget

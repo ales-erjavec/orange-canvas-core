@@ -5,16 +5,16 @@ from typing import Optional, Union, Iterable
 
 from xml.sax.saxutils import escape
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QDialog, QWidget, QToolButton, QCheckBox, QAction,
     QHBoxLayout, QVBoxLayout, QSizePolicy, QLabel, QApplication
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QFont, QIcon, QPixmap, QPainter, QColor, QBrush, QActionEvent
 )
 
-from AnyQt.QtCore import Qt, QRect, QSize, QPoint
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtCore import Qt, QRect, QSize, QPoint
+from PyQt5.QtCore import pyqtSignal as Signal
 
 from ..canvas.items.utils import radial_gradient
 from ..registry import NAMED_COLORS

@@ -5,11 +5,16 @@ import operator
 import sys
 from collections import namedtuple
 
-from AnyQt.QtCore import Signal, Qt, QSize, Slot, QObject, Property, QRect, QEvent, QPoint
-from AnyQt.QtGui import QIcon, QPixmap, QPainter, QPalette
-from AnyQt.QtWidgets import QAbstractButton, QHBoxLayout, QPushButton, QStyle, QWidget, \
-    QVBoxLayout, QLabel, QSizePolicy, QStyleOption, QFocusFrame, QStylePainter, QStyleOptionButton
-
+from PyQt5.QtCore import Qt, QSize, QObject, QRect, QEvent, QPoint
+from PyQt5.QtGui import QIcon, QPixmap, QPainter, QPalette
+from PyQt5.QtWidgets import (
+    QAbstractButton, QHBoxLayout, QPushButton, QStyle, QWidget, QVBoxLayout,
+    QLabel, QSizePolicy, QStyleOption, QFocusFrame, QStylePainter,
+    QStyleOptionButton
+)
+from PyQt5.QtCore import (
+    pyqtSignal as Signal, pyqtSlot as Slot, pyqtProperty as Property
+)
 from orangecanvas.gui.stackedwidget import StackLayout
 
 log = logging.getLogger(__name__)

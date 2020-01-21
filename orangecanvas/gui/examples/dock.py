@@ -1,7 +1,7 @@
 import sys
-from AnyQt.QtCore import Qt
-from AnyQt.QtGui import QKeySequence
-from AnyQt.QtWidgets import (
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import (
     QApplication, QAction, QMainWindow, QTextEdit, QToolButton,
     QTreeView
 )

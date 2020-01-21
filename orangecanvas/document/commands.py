@@ -5,7 +5,7 @@ Undo/Redo Commands
 import typing
 from typing import Callable, Optional, Tuple, Any
 
-from AnyQt.QtWidgets import QUndoCommand
+from PyQt5.QtWidgets import QUndoCommand
 
 if typing.TYPE_CHECKING:
     from ..scheme import (

@@ -23,8 +23,8 @@ from typing import (
     Sequence, Union, DefaultDict
 )
 
-from AnyQt.QtCore import QObject, QTimer, QSettings
-from AnyQt.QtCore import pyqtSignal, pyqtSlot as Slot
+from PyQt5.QtCore import QObject, QTimer, QSettings
+from PyQt5.QtCore import pyqtSignal, pyqtSlot as Slot
 
 from ..utils import unique, mapping_get, group_by_all
 from ..registry import OutputSignal

@@ -1,7 +1,7 @@
 """
 Scheme tests
 """
-from AnyQt.QtCore import QObject, QEventLoop, QTimer, QCoreApplication, QEvent
+from PyQt5.QtCore import QObject, QEventLoop, QTimer, QCoreApplication, QEvent
 from typing import List
 
 

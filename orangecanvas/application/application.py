@@ -3,9 +3,9 @@ Orange Canvas Application
 
 """
 
-from AnyQt.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication
 
-from AnyQt.QtCore import Qt, QUrl, QEvent, pyqtSignal as Signal
+from PyQt5.QtCore import Qt, QUrl, QEvent, pyqtSignal as Signal
 
 
 class CanvasApplication(QApplication):

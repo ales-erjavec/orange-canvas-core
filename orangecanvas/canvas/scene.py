@@ -14,14 +14,14 @@ from operator import attrgetter
 
 from xml.sax.saxutils import escape
 
-from AnyQt.QtWidgets import QGraphicsScene, QGraphicsItem
-from AnyQt.QtGui import QPainter, QColor, QFont
-from AnyQt.QtCore import (
+from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem
+from PyQt5.QtGui import QPainter, QColor, QFont
+from PyQt5.QtCore import (
     Qt, QPointF, QRectF, QSizeF, QLineF, QBuffer, QObject, QSignalMapper,
     QT_VERSION
 )
-from AnyQt.QtSvg import QSvgGenerator
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtSvg import QSvgGenerator
+from PyQt5.QtCore import pyqtSignal as Signal
 
 from ..registry import (
     WidgetRegistry, WidgetDescription, CategoryDescription,

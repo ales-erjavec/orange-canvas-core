@@ -2,9 +2,9 @@
 
 import unittest.mock
 
-from AnyQt.QtCore import Qt, QEvent
-from AnyQt.QtTest import QTest
-from AnyQt.QtWidgets import QWidget, QApplication
+from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtTest import QTest
+from PyQt5.QtWidgets import QWidget, QApplication
 
 from orangecanvas.gui.test import QAppTestCase
 from orangecanvas.utils.overlay import NotificationWidget, NotificationOverlay, Notification, \

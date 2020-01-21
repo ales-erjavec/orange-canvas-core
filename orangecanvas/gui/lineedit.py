@@ -6,13 +6,13 @@ from collections import namedtuple
 
 from typing import Any, Optional, List, NamedTuple
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QLineEdit, QToolButton, QStyleOptionToolButton, QStylePainter,
     QStyle, QAction, QWidget,
 )
-from AnyQt.QtGui import QPaintEvent, QPainter, QColor
-from AnyQt.QtCore import Qt, QSize, QRect
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtGui import QPaintEvent, QPainter, QColor
+from PyQt5.QtCore import Qt, QSize, QRect
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from orangecanvas.gui.utils import innerShadowPixmap
 

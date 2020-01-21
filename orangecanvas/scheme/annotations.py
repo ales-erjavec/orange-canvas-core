@@ -7,8 +7,8 @@ Scheme Annotations
 import typing
 from typing import Tuple, Optional, Any
 
-from AnyQt.QtCore import QObject
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtCore import QObject
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from ..utils import check_type
 

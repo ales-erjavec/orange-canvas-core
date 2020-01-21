@@ -2,8 +2,8 @@
 Test for StackedWidget
 
 """
-from AnyQt.QtWidgets import QWidget, QLabel, QGroupBox, QListView, QVBoxLayout
-from AnyQt.QtCore import QTimer
+from PyQt5.QtWidgets import QWidget, QLabel, QGroupBox, QListView, QVBoxLayout
+from PyQt5.QtCore import QTimer
 
 from .. import test
 from .. import stackedwidget

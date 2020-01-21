@@ -10,10 +10,10 @@ from xml.sax.saxutils import escape
 
 from typing import Iterable, Dict, Deque, Optional, List, Tuple
 
-from AnyQt.QtCore import Qt, QObject, QEvent, QTimer, QCoreApplication
-from AnyQt.QtCore import Slot, Signal
-from AnyQt.QtGui import QKeySequence
-from AnyQt.QtWidgets import QWidget, QLabel, QAction
+from PyQt5.QtCore import Qt, QObject, QEvent, QTimer, QCoreApplication
+from PyQt5.QtCore import pyqtSlot as Slot, pyqtSignal as Signal
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QWidget, QLabel, QAction
 
 from orangecanvas.resources import icon_loader
 from orangecanvas.scheme import (

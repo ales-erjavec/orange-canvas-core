@@ -24,23 +24,23 @@ from typing import (
 import requests
 import pkg_resources
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTreeView, QHeaderView,
     QTextBrowser, QDialogButtonBox, QProgressDialog, QVBoxLayout,
     QPushButton, QFormLayout, QHBoxLayout, QMessageBox,
     QStyledItemDelegate, QStyle, QApplication, QStyleOptionViewItem,
     QShortcut
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QStandardItemModel, QStandardItem, QTextOption, QDropEvent, QDragEnterEvent,
     QKeySequence
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     QSortFilterProxyModel, QItemSelectionModel,
     Qt, QObject, QSize, QTimer, QThread,
     QSettings, QStandardPaths, QEvent, QAbstractItemModel, QModelIndex,
 )
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
 
 from orangecanvas.utils import unique, name_lookup, markup
 from orangecanvas.utils.shtools import python_process, create_process, \
@@ -1542,7 +1542,7 @@ def run_process(process: 'subprocess.Popen', **kwargs) -> Tuple[int, List[AnyStr
 
 def main(argv=None):  # noqa
     import argparse
-    from AnyQt.QtWidgets import QApplication
+    from PyQt5.QtWidgets import QApplication
     app = QApplication(argv if argv is not None else [])
     argv = app.arguments()
     parser = argparse.ArgumentParser()

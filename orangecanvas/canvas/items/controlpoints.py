@@ -3,11 +3,11 @@ import typing
 
 from typing import Optional, Any, Union, Tuple
 
-from AnyQt.QtWidgets import QGraphicsItem, QGraphicsObject
-from AnyQt.QtGui import QBrush, QPainterPath
-from AnyQt.QtCore import Qt, QPointF, QLineF, QRectF, QMargins, QEvent
+from PyQt5.QtWidgets import QGraphicsItem, QGraphicsObject
+from PyQt5.QtGui import QBrush, QPainterPath
+from PyQt5.QtCore import Qt, QPointF, QLineF, QRectF, QMargins, QEvent
 
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 
 from .graphicspathobject import GraphicsPathObject

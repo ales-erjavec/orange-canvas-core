@@ -1,7 +1,7 @@
 import unittest
 
-from AnyQt.QtWidgets import QApplication
-from AnyQt.QtTest import QSignalSpy
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtTest import QSignalSpy
 
 from orangecanvas.scheme import Scheme, SchemeNode, SchemeLink
 from orangecanvas.scheme import signalmanager

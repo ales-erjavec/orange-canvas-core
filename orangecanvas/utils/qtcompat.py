@@ -1,7 +1,7 @@
 import warnings
 
 # Back-compatibility. Should not be imported from here
-from AnyQt.QtCore import QSettings  # pylint: disable=unused-import
+from PyQt5.QtCore import QSettings  # pylint: disable=unused-import
 
 
 def toPyObject(variant):

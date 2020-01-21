@@ -8,14 +8,14 @@ import ctypes
 
 from contextlib import contextmanager
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QMessageBox, QStyleOption, QStyle, QTextEdit
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QGradient, QLinearGradient, QRadialGradient, QBrush, QPainter,
     QPaintEvent, QColor, QPixmap, QPixmapCache, QTextOption
 )
-from AnyQt.QtCore import Qt, QPointF, QPoint, QRect, QRectF
+from PyQt5.QtCore import Qt, QPointF, QPoint, QRect, QRectF
 
 import sip
 
@@ -103,7 +103,7 @@ def has_x11():  # type: () -> bool
     """Is Qt build against X11 server.
     """
     try:
-        from AnyQt.QtX11Extras import QX11Info
+        from PyQt5.QtX11Extras import QX11Info
         return True
     except ImportError:
         return False
@@ -113,7 +113,7 @@ def is_x11_compositing_enabled():  # type: () -> bool
     """Is X11 compositing manager running.
     """
     try:
-        from AnyQt.QtX11Extras import QX11Info
+        from PyQt5.QtX11Extras import QX11Info
     except ImportError:
         return False
     if hasattr(QX11Info, "isCompositingManagerRunning"):

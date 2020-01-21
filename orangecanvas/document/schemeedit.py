@@ -18,7 +18,7 @@ from typing import (
     List, Tuple, Optional, Container, Dict, Any, Iterable, Generator
 )
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QInputDialog, QMenu, QAction, QActionGroup,
     QUndoStack, QUndoCommand, QGraphicsItem, QGraphicsTextItem,
     QFormLayout, QComboBox, QDialog, QDialogButtonBox, QMessageBox, QCheckBox,
@@ -26,15 +26,17 @@ from AnyQt.QtWidgets import (
     QGraphicsSceneContextMenuEvent, QGraphicsView, QGraphicsScene,
     QApplication
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QKeySequence, QCursor, QFont, QPainter, QPixmap, QColor, QIcon,
     QWhatsThisClickedEvent, QKeyEvent, QPalette
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QObject, QEvent, QSignalMapper, QCoreApplication, QPoint, QPointF,
-    QMimeData, Slot)
-from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
-
+    QMimeData
+)
+from PyQt5.QtCore import (
+    pyqtProperty as Property, pyqtSignal as Signal, pyqtSlot as Slot
+)
 from ..registry import WidgetDescription, WidgetRegistry
 from .suggestions import Suggestions
 from .usagestatistics import UsageStatistics

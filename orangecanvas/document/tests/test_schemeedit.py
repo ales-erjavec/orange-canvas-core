@@ -3,11 +3,11 @@ Tests for scheme document.
 """
 from typing import Iterable
 
-from AnyQt.QtTest import QSignalSpy, QTest
+from PyQt5.QtTest import QSignalSpy, QTest
 
-from AnyQt.QtWidgets import QGraphicsWidget, QAction, QApplication
+from PyQt5.QtWidgets import QGraphicsWidget, QAction, QApplication
 
-from AnyQt.QtCore import Qt, QObject, QPoint
+from PyQt5.QtCore import Qt, QObject, QPoint
 from ..schemeedit import SchemeEditWidget
 from ...scheme import Scheme, SchemeNode, SchemeLink, SchemeTextAnnotation, \
                       SchemeArrowAnnotation

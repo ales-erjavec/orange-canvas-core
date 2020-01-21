@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import patch
 
-from AnyQt.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox
 
-from AnyQt.QtCore import QEventLoop
+from PyQt5.QtCore import QEventLoop
 from orangecanvas.application import addons
 from orangecanvas.gui.test import QAppTestCase
 from orangecanvas.utils.qinvoke import qinvoke

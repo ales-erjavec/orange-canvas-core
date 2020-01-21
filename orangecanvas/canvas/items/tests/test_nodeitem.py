@@ -1,6 +1,6 @@
-from AnyQt.QtCore import QTimer
-from AnyQt.QtWidgets import QGraphicsEllipseItem
-from AnyQt.QtGui import QPainterPath
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QGraphicsEllipseItem
+from PyQt5.QtGui import QPainterPath
 
 from .. import NodeItem, AnchorPoint, NodeAnchorItem
 

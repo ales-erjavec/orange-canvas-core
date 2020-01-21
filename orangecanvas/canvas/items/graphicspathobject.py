@@ -1,13 +1,13 @@
 from typing import Any, Optional, Union
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QGraphicsItem, QGraphicsObject, QStyleOptionGraphicsItem, QWidget
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QPainterPath, QPainterPathStroker, QBrush, QPen, QPainter, QColor
 )
-from AnyQt.QtCore import Qt, QPointF, QRectF
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtCore import Qt, QPointF, QRectF
+from PyQt5.QtCore import pyqtSignal as Signal
 
 
 class GraphicsPathObject(QGraphicsObject):

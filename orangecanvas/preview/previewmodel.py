@@ -4,11 +4,11 @@ Preview item model.
 import os
 import logging
 
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QStandardItemModel, QStandardItem, QIcon
 )
-from AnyQt.QtCore import Qt, QTimer
-from AnyQt.QtCore import pyqtSlot as Slot
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import pyqtSlot as Slot
 
 from ..gui.svgiconengine import SvgIconEngine
 from . import scanner

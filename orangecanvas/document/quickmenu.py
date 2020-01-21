@@ -16,21 +16,21 @@ from collections import namedtuple
 
 from typing import Optional, Any, List, Callable
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QFrame, QToolButton, QAbstractButton, QAction, QTreeView,
     QButtonGroup, QStackedWidget, QHBoxLayout, QVBoxLayout, QSizePolicy,
     QStyleOptionToolButton, QStylePainter, QStyle, QApplication,
     QStyleOptionViewItem, QSizeGrip, QAbstractItemView, QStyledItemDelegate
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QIcon, QStandardItemModel, QPolygon, QRegion, QBrush, QPalette,
     QPaintEvent, QColor, QMouseEvent, QPixmap)
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QObject, QPoint, QSize, QRect, QEventLoop, QEvent, QModelIndex,
     QTimer, QRegExp, QSortFilterProxyModel, QItemSelectionModel,
     QAbstractItemModel,
     QSettings)
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QPainter
 

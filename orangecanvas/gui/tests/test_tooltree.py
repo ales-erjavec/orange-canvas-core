@@ -2,9 +2,9 @@
 Test for tooltree
 
 """
-from AnyQt.QtWidgets import QAction
-from AnyQt.QtGui import QStandardItemModel, QStandardItem
-from AnyQt.QtCore import Qt
+from PyQt5.QtWidgets import QAction
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtCore import Qt
 
 from ..tooltree import ToolTree, FlattenedTreeItemModel
 

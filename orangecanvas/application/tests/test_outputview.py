@@ -4,7 +4,7 @@ import multiprocessing.pool
 from datetime import datetime
 from threading import current_thread
 
-from AnyQt.QtCore import Qt, QThread, QTimer, QCoreApplication, QEvent
+from PyQt5.QtCore import Qt, QThread, QTimer, QCoreApplication, QEvent
 from ...gui.test import QAppTestCase
 
 from ..outputview import OutputView, TextStream, ExceptHook

@@ -3,8 +3,8 @@ Test for searchwidget
 
 """
 
-from AnyQt.QtWidgets import QAction, QStyle, QMenu
-from AnyQt.QtGui import QIcon
+from PyQt5.QtWidgets import QAction, QStyle, QMenu
+from PyQt5.QtGui import QIcon
 
 from ..lineedit import LineEdit
 

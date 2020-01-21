@@ -1,4 +1,4 @@
-from AnyQt.QtWidgets import QAction, QToolButton
+from PyQt5.QtWidgets import QAction, QToolButton
 
 from .. import test
 from ..toolgrid import ToolGrid

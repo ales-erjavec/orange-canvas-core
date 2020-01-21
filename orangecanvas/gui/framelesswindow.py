@@ -3,9 +3,9 @@ A frameless window widget
 """
 from typing import Optional, Any
 
-from AnyQt.QtWidgets import QWidget, QStyleOption
-from AnyQt.QtGui import QPalette, QPainter, QBitmap, QPaintEvent
-from AnyQt.QtCore import Qt, pyqtProperty as Property
+from PyQt5.QtWidgets import QWidget, QStyleOption
+from PyQt5.QtGui import QPalette, QPainter, QBitmap, QPaintEvent
+from PyQt5.QtCore import Qt, pyqtProperty as Property
 
 from .utils import is_transparency_supported, StyledWidget_paintEvent
 

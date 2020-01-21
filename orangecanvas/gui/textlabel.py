@@ -1,6 +1,6 @@
-from AnyQt.QtCore import Qt, QSize, QEvent
-from AnyQt.QtGui import QPaintEvent
-from AnyQt.QtWidgets import QWidget, QSizePolicy, QStyleOption, QStylePainter
+from PyQt5.QtCore import Qt, QSize, QEvent
+from PyQt5.QtGui import QPaintEvent
+from PyQt5.QtWidgets import QWidget, QSizePolicy, QStyleOption, QStylePainter
 
 
 class TextLabel(QWidget):

@@ -1,13 +1,11 @@
 import time
+import unittest
+from concurrent.futures.thread import ThreadPoolExecutor
 from typing import List, Optional, Callable
 
-import unittest
-from AnyQt.QtCore import QCoreApplication, QThread, QObject, Slot, Signal, \
-    QEvent
-
-from concurrent.futures.thread import ThreadPoolExecutor
-
-from AnyQt.QtTest import QSignalSpy, QTest
+from PyQt5.QtCore import QCoreApplication, QThread, QObject, QEvent
+from PyQt5.QtCore import pyqtSignal as Signal
+from PyQt5.QtTest import QSignalSpy, QTest
 
 from ..qinvoke import qinvoke
 

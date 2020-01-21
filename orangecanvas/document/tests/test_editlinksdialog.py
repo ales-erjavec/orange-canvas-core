@@ -1,5 +1,5 @@
-from AnyQt.QtWidgets import QGraphicsScene, QGraphicsView
-from AnyQt.QtCore import Qt
+from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView
+from PyQt5.QtCore import Qt
 
 from ...registry.tests import small_testing_registry
 from ...gui import test

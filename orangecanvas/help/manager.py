@@ -18,7 +18,7 @@ from typing import Dict, Optional, List, Union, Callable
 
 import pkg_resources
 
-from AnyQt.QtCore import QObject, QUrl, QDir
+from PyQt5.QtCore import QObject, QUrl, QDir
 
 from . import provider
 

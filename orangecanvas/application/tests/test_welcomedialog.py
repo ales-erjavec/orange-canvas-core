@@ -1,7 +1,7 @@
 """
 Test for welcome screen.
 """
-from AnyQt.QtWidgets import QAction
+from PyQt5.QtWidgets import QAction
 
 from ...resources import icon_loader
 

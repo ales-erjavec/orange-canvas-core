@@ -8,19 +8,19 @@ A tool box with a tool grid for each category.
 """
 from typing import Optional, Iterable, Any
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QAbstractButton, QSizePolicy, QAction, QApplication, QToolButton,
     QWidget
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QDrag, QPalette, QBrush, QIcon, QColor, QGradient, QActionEvent,
     QMouseEvent
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QObject, QAbstractItemModel, QModelIndex, QSize, QEvent, QMimeData,
     QByteArray, QDataStream, QIODevice, QPoint
 )
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from ..gui.toolbox import ToolBox
 from ..gui.toolgrid import ToolGrid

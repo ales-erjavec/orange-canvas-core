@@ -1,6 +1,6 @@
 from typing import Callable, Any, Sequence, NamedTuple, Optional, List
 
-from AnyQt.QtCore import Qt, QSortFilterProxyModel, QModelIndex, QObject
+from PyQt5.QtCore import Qt, QSortFilterProxyModel, QModelIndex, QObject
 
 
 class FilterProxyModel(QSortFilterProxyModel):

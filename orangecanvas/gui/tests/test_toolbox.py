@@ -6,8 +6,8 @@ Tests for ToolBox widget.
 from .. import test
 from .. import toolbox
 
-from AnyQt.QtWidgets import QLabel, QListView, QSpinBox, QAbstractButton
-from AnyQt.QtGui import QIcon
+from PyQt5.QtWidgets import QLabel, QListView, QSpinBox, QAbstractButton
+from PyQt5.QtGui import QIcon
 
 
 class TestToolBox(test.QAppTestCase):

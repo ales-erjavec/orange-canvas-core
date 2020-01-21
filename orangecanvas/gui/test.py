@@ -6,10 +6,10 @@ import unittest
 import gc
 from typing import Callable, Any
 
-from AnyQt.QtWidgets import QApplication, QWidget
-from AnyQt.QtCore import QCoreApplication, QTimer, QStandardPaths, QPoint, Qt
-from AnyQt.QtGui import QMouseEvent
-from AnyQt.QtTest import QTest
+from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtCore import QCoreApplication, QTimer, QStandardPaths, QPoint, Qt
+from PyQt5.QtGui import QMouseEvent
+from PyQt5.QtTest import QTest
 
 DEFAULT_TIMEOUT = 50
 

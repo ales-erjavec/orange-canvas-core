@@ -15,11 +15,11 @@ from typing import Dict, Optional, Tuple, List, Union, Iterable, Any
 
 import pkg_resources
 
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QPainter, QFont, QFontMetrics, QColor, QPixmap, QIcon
 )
 
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QCoreApplication, QPoint, QRect, QSettings, QStandardPaths
 )
 

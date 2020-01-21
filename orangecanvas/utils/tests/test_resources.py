@@ -7,7 +7,7 @@ from orangecanvas.resources import icon_loader
 
 class TestIconLoader(unittest.TestCase):
     def setUp(self):
-        from AnyQt.QtWidgets import QApplication
+        from PyQt5.QtWidgets import QApplication
         self.app = QApplication([])
 
     def tearDown(self):

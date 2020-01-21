@@ -10,14 +10,14 @@ organized in a tree structure.
 import enum
 from typing import Any, Dict, Tuple, List, Optional
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QTreeView, QWidget, QVBoxLayout, QSizePolicy, QStyle, QAction,
 )
-from AnyQt.QtGui import QStandardItemModel
-from AnyQt.QtCore import (
+from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtCore import (
     Qt, QEvent, QModelIndex, QAbstractItemModel, QAbstractProxyModel, QObject
 )
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtCore import pyqtSignal as Signal
 
 __all__ = [
     "ToolTree", "FlattenedTreeItemModel"

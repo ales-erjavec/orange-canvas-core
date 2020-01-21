@@ -1,20 +1,20 @@
 from typing import Optional, Union, Any, Tuple
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QGraphicsItem, QGraphicsPathItem, QGraphicsWidget, QGraphicsTextItem,
     QGraphicsDropShadowEffect, QMenu, QAction, QActionGroup,
     QStyleOptionGraphicsItem, QWidget, QGraphicsSceneHoverEvent,
     QGraphicsSceneMouseEvent, QGraphicsSceneResizeEvent,
     QGraphicsSceneContextMenuEvent
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QPainterPath, QPainterPathStroker, QPolygonF, QColor, QPen, QBrush,
     QPalette, QPainter, QTextDocument, QTextCursor, QFocusEvent
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QPointF, QSizeF, QRectF, QLineF, QEvent, QMetaObject, QObject
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     pyqtSignal as Signal, pyqtProperty as Property, pyqtSlot as Slot
 )
 

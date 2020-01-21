@@ -9,8 +9,8 @@ from typing import Optional, Any, List
 
 import sip
 
-from AnyQt.QtWidgets import QGraphicsObject, QApplication, QGraphicsItem
-from AnyQt.QtCore import QRectF, QLineF, QEvent, QPointF
+from PyQt5.QtWidgets import QGraphicsObject, QApplication, QGraphicsItem
+from PyQt5.QtCore import QRectF, QLineF, QEvent, QPointF
 
 from .items import (
     NodeItem, LinkItem, NodeAnchorItem, SourceAnchorItem, SinkAnchorItem

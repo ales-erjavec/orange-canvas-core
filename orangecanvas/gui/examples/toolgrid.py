@@ -1,6 +1,6 @@
 import sys
 
-from AnyQt.QtWidgets import QAction, QStyle, QApplication
+from PyQt5.QtWidgets import QAction, QStyle, QApplication
 
 from orangecanvas.gui.toolgrid import ToolGrid
 

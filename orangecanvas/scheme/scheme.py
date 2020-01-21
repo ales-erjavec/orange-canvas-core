@@ -16,8 +16,8 @@ from collections import deque
 import typing
 from typing import List, Tuple, Optional, Set, Dict, Any, Mapping
 
-from AnyQt.QtCore import QObject, QCoreApplication
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtCore import QObject, QCoreApplication
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from .node import SchemeNode
 from .link import SchemeLink, compatible_channels, resolved_valid_types, \

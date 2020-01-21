@@ -2,7 +2,7 @@ import os
 import tempfile
 from unittest.mock import patch
 
-from AnyQt.QtWidgets import QToolButton, QDialog, QMessageBox
+from PyQt5.QtWidgets import QToolButton, QDialog, QMessageBox
 
 from .. import addons
 from ...utils.shtools import temp_named_file
@@ -118,7 +118,7 @@ class TestMainWindowLoad(TestMainWindowBase):
             f.assert_not_called()
 
         w.current_document().setPath("")
-        with patch("AnyQt.QtWidgets.QFileDialog.getSaveFileName",
+        with patch("PyQt5.QtWidgets.QFileDialog.getSaveFileName",
                    return_value=(self.filename, "")) as f:
             w.save_scheme()
             self.assertEqual(w.current_document().path(), self.filename)
@@ -126,12 +126,12 @@ class TestMainWindowLoad(TestMainWindowBase):
     def test_open_ows_req(self):
         w = self.w
         with temp_named_file(TEST_OWS_REQ.decode()) as f:
-            with patch("AnyQt.QtWidgets.QMessageBox.exec",
+            with patch("PyQt5.QtWidgets.QMessageBox.exec",
                        return_value=QMessageBox.Ignore):
                 w.load_scheme(f)
                 self.assertEqual(w.current_document().path(), f)
 
-            with patch("AnyQt.QtWidgets.QMessageBox.exec",
+            with patch("PyQt5.QtWidgets.QMessageBox.exec",
                        return_value=QMessageBox.Abort):
                 w.load_scheme(f)
                 self.assertEqual(w.current_document().path(), f)

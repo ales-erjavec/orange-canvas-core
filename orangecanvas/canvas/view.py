@@ -3,10 +3,10 @@ Canvas Graphics View
 """
 import logging
 
-from AnyQt.QtWidgets import QGraphicsView, QAction
-from AnyQt.QtGui import QCursor, QIcon, QKeySequence, QTransform, QWheelEvent
-from AnyQt.QtCore import Qt, QRect, QSize, QRectF, QPoint, QTimer, Property
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtWidgets import QGraphicsView, QAction
+from PyQt5.QtGui import QCursor, QIcon, QKeySequence, QTransform, QWheelEvent
+from PyQt5.QtCore import Qt, QRect, QSize, QRectF, QPoint, QTimer
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 log = logging.getLogger(__name__)
 
 

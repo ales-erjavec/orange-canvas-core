@@ -6,17 +6,17 @@ import sys
 import warnings
 from typing import Optional, Any
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QSplitter, QVBoxLayout, QAction, QSizePolicy, QApplication,
     QToolButton, QTreeView)
-from AnyQt.QtGui import QPalette, QBrush, QDrag, QResizeEvent, QHideEvent
+from PyQt5.QtGui import QPalette, QBrush, QDrag, QResizeEvent, QHideEvent
 
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QSize, QObject, QPropertyAnimation, QEvent, QRect, QPoint,
     QAbstractItemModel, QModelIndex, QPersistentModelIndex, QEventLoop,
     QMimeData
 )
-from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
+from PyQt5.QtCore import pyqtProperty as Property, pyqtSignal as Signal
 
 from ..gui.toolgrid import ToolGrid
 from ..gui.toolbar import DynamicResizeToolBar

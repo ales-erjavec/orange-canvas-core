@@ -20,16 +20,16 @@ from functools import reduce
 
 
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QApplication, QGraphicsRectItem, QUndoCommand, QGraphicsSceneMouseEvent,
     QGraphicsSceneContextMenuEvent, QWidget, QGraphicsItem,
 )
-from AnyQt.QtGui import QPen, QBrush, QColor, QFontMetrics, QKeyEvent, QFont
-from AnyQt.QtCore import (
+from PyQt5.QtGui import QPen, QBrush, QColor, QFontMetrics, QKeyEvent, QFont
+from PyQt5.QtCore import (
     Qt, QObject, QCoreApplication, QSizeF, QPointF, QRect, QRectF, QLineF,
     QPoint,
 )
-from AnyQt.QtCore import pyqtSignal as Signal
+from PyQt5.QtCore import pyqtSignal as Signal
 
 from .usagestatistics import UsageStatistics
 from ..registry.description import WidgetDescription, OutputSignal, InputSignal

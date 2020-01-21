@@ -4,12 +4,12 @@ Tests for DropShadowFrame wiget.
 """
 import math
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QListView, QTextEdit, QHBoxLayout, QToolBar,
     QVBoxLayout
 )
-from AnyQt.QtGui import QColor
-from AnyQt.QtCore import Qt, QPoint, QPropertyAnimation, QVariantAnimation
+from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QVariantAnimation
 
 from .. import dropshadow
 

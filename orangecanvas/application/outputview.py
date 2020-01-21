@@ -7,12 +7,12 @@ import traceback
 from types import TracebackType
 from typing import Any, Optional, List, Type
 
-from AnyQt.QtWidgets import QWidget, QPlainTextEdit, QVBoxLayout, QSizePolicy
-from AnyQt.QtGui import (
+from PyQt5.QtWidgets import QWidget, QPlainTextEdit, QVBoxLayout, QSizePolicy
+from PyQt5.QtGui import (
     QTextCursor, QTextCharFormat, QFont, QTextOption, QFontDatabase
 )
-from AnyQt.QtCore import Qt, QObject, QCoreApplication, QThread, QSize
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from PyQt5.QtCore import Qt, QObject, QCoreApplication, QThread, QSize
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
 
 
 class TerminalView(QPlainTextEdit):

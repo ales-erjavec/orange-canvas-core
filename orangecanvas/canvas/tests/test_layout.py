@@ -1,8 +1,8 @@
 import time
 
-from AnyQt.QtCore import QTimer
-from AnyQt.QtWidgets import QGraphicsView
-from AnyQt.QtGui import QPainter, QPainterPath
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QGraphicsView
+from PyQt5.QtGui import QPainter, QPainterPath
 
 from ...gui.test import QAppTestCase
 

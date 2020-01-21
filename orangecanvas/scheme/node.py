@@ -8,8 +8,8 @@ import enum
 import warnings
 from typing import Optional, Dict, Any, List, Tuple, Iterable, Union
 
-from AnyQt.QtCore import QObject, QCoreApplication
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtCore import QObject, QCoreApplication
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from ..registry import WidgetDescription, InputSignal, OutputSignal
 from .events import NodeEvent

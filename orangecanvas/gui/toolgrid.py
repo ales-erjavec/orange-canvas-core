@@ -6,16 +6,16 @@ from collections import deque
 
 from typing import NamedTuple, List, Iterable, Optional, Any, Union
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QFrame, QAction, QToolButton, QGridLayout, QSizePolicy,
     QStyleOptionToolButton, QStylePainter, QStyle, QApplication,
     QWidget
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QFont, QFontMetrics, QActionEvent, QPaintEvent, QResizeEvent,
 )
-from AnyQt.QtCore import Qt, QObject, QSize, QEvent, QSignalMapper
-from AnyQt.QtCore import Signal, Slot
+from PyQt5.QtCore import Qt, QObject, QSize, QEvent, QSignalMapper
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
 
 from orangecanvas.registry import WidgetDescription
 

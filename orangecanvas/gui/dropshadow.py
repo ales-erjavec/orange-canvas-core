@@ -9,17 +9,17 @@ widget.
 """
 from typing import Optional, Any, Union, List
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QGraphicsScene, QGraphicsRectItem, QGraphicsDropShadowEffect,
     QStyleOption, QAbstractScrollArea, QToolBar
 )
-from AnyQt.QtGui import (
+from PyQt5.QtGui import (
     QPainter, QPixmap, QColor, QPen, QPalette, QRegion, QPaintEvent
 )
-from AnyQt.QtCore import (
+from PyQt5.QtCore import (
     Qt, QPoint, QPointF, QRect, QRectF, QSize, QSizeF, QEvent, QObject
 )
-from AnyQt.QtCore import pyqtProperty as Property
+from PyQt5.QtCore import pyqtProperty as Property
 
 
 def render_drop_shadow_frame(pixmap, shadow_rect, shadow_color,

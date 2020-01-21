@@ -23,12 +23,12 @@ PACKAGE_DATA = {
 
 INSTALL_REQUIRES = (
     "setuptools",
-    "AnyQt",
     "docutils",
     "commonmark",
     "requests",
     "cachecontrol[filecache]",
     "pip>=18.0",
+    "PyQt5",
 )
 
 

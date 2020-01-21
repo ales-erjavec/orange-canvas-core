@@ -1,4 +1,4 @@
-from AnyQt.QtCore import QTimer
+from PyQt5.QtCore import QTimer
 from ..framelesswindow import FramelessWindow
 
 from ..test import QAppTestCase

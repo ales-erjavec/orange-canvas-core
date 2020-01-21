@@ -1,6 +1,6 @@
-from AnyQt.QtWidgets import QAction
-from AnyQt.QtCore import QPoint, QStringListModel
-from AnyQt.QtTest import QTest
+from PyQt5.QtWidgets import QAction
+from PyQt5.QtCore import QPoint, QStringListModel
+from PyQt5.QtTest import QTest
 
 from ..quickmenu import QuickMenu, SuggestMenuPage, FlattenedTreeItemModel, \
                         MenuPage

@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import logging
 
-from AnyQt.QtCore import QSettings
+from PyQt5.QtCore import QSettings
 from ..settings import Settings, config_slot, QSettings_readArray, \
     QSettings_writeArray, QSettings_writeArrayItem
 from ...gui import test

@@ -11,12 +11,12 @@ from typing import Any, Union
 
 import logging
 
-from AnyQt.QtWidgets import (
+from PyQt5.QtWidgets import (
     QWidget, QFrame, QStackedLayout, QSizePolicy, QLayout
 )
-from AnyQt.QtGui import QPixmap, QPainter
-from AnyQt.QtCore import Qt, QPoint, QRect, QSize, QPropertyAnimation
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtCore import Qt, QPoint, QRect, QSize, QPropertyAnimation
+from PyQt5.QtCore import pyqtSignal as Signal, pyqtProperty as Property
 
 from .utils import updates_disabled
 

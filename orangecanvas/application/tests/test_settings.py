@@ -1,7 +1,7 @@
 import logging
 
-from AnyQt.QtCore import QSettings
-from AnyQt.QtWidgets import QTreeView
+from PyQt5.QtCore import QSettings
+from PyQt5.QtWidgets import QTreeView
 from orangecanvas import config
 
 from ...gui import test

@@ -1,6 +1,6 @@
 import time
 
-from AnyQt.QtCore import QTimer
+from PyQt5.QtCore import QTimer
 
 from ..linkitem import LinkItem
 

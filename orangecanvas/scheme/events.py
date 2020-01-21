@@ -10,7 +10,7 @@ instance.
 import typing
 from typing import Any
 
-from AnyQt.QtCore import QEvent
+from PyQt5.QtCore import QEvent
 
 if typing.TYPE_CHECKING:
     from orangecanvas.scheme import SchemeLink, SchemeNode, BaseSchemeAnnotation

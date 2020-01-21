@@ -2,8 +2,8 @@
 Test for canvas toolbox.
 """
 
-from AnyQt.QtWidgets import QWidget, QToolBar, QTextEdit, QSplitter
-from AnyQt.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QWidget, QToolBar, QTextEdit, QSplitter
+from PyQt5.QtCore import Qt, QTimer
 
 from ...registry import tests as registry_tests
 from ...registry.qt import QtWidgetRegistry
