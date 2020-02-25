@@ -2293,9 +2293,13 @@ class SaveWindowGroup(QDialog):
         )
         form.setWidget(1, QFormLayout.FieldRole, check)
         bb = QDialogButtonBox(
-            standardButtons=QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            standardButtons=QDialogButtonBox.Ok | QDialogButtonBox.Cancel |
+                            QDialogButtonBox.Help
+        )
         bb.accepted.connect(self.__accept_check)
         bb.rejected.connect(self.reject)
+        bb.helpRequested.connect(self.__helpRequested)
+
         layout.addWidget(bb)
         layout.setSizeConstraint(QVBoxLayout.SetFixedSize)
         self.setLayout(layout)
@@ -2362,6 +2366,13 @@ class SaveWindowGroup(QDialog):
         """Return the state of the 'Use as default' check box."""
         return self._checkbox.isChecked()
 
+    def __helpRequested(self):
+        ev = QWhatsThisClickedEvent(
+            "help:orange-canvas-core?topic=window-groups"
+        )
+        parent = self.parent()
+        if parent is not None:
+            handled = QCoreApplication.sendEvent(parent, ev)
 
 def geometry_from_annotation_item(item):
     if isinstance(item, items.ArrowAnnotation):

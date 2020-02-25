@@ -14,6 +14,7 @@ Contents:
    orangecanvas/overview
    orangecanvas/index
    userguide/annotations
+   userguide/windowgroup
 
 Indices and tables
 ==================
