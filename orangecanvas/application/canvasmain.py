@@ -220,6 +220,9 @@ class CanvasMainWindow(QMainWindow):
 
         self.scheme_widget = SchemeEditWidget()
         self.scheme_widget.setScheme(config.workflow_constructor(parent=self))
+        wm = self.scheme_widget.widgetManager()
+        if wm is not None:
+            wm.set_transient_parent(self.windowHandle())
 
         # Save crash recovery swap file on changes to workflow
         self.scheme_widget.undoCommandAdded.connect(self.save_swp)
@@ -1379,6 +1382,9 @@ class CanvasMainWindow(QMainWindow):
             )
 
         scheme_doc.setScheme(new_scheme)
+        wm = scheme_doc.widgetManager()
+        if wm is not None:
+            wm.set_transient_parent(self.windowHandle())
 
         if old_scheme is not None:
             # Send a close event to the Scheme, it is responsible for

@@ -12,7 +12,7 @@ from typing import Iterable, Dict, Deque, Optional, List, Tuple
 
 from AnyQt.QtCore import Qt, QObject, QEvent, QTimer, QCoreApplication
 from AnyQt.QtCore import Slot, Signal
-from AnyQt.QtGui import QKeySequence
+from AnyQt.QtGui import QKeySequence, QWindow
 from AnyQt.QtWidgets import QWidget, QLabel, QAction
 
 from orangecanvas.resources import icon_loader
@@ -259,6 +259,7 @@ class WidgetManager(QObject):
             self.__item_for_widget[w] = item
 
         self.__set_float_on_top_flag(w)
+        self.__set_transient_parent(w)
 
         if w.windowIcon().isNull():
             desc = node.description
@@ -456,6 +457,22 @@ class WidgetManager(QObject):
         for item in self.__item_for_node.values():
             if item.widget is not None:
                 self.__set_float_on_top_flag(item.widget)
+
+    __transient_parent = Optional[QWindow]
+
+    def set_transient_parent(self, window: QWindow):
+        if self.__transient_parent is not window:
+            self.__transient_parent = window
+            for item in self.__item_for_node.values():
+                if item.widget is not None:
+                    self.__set_transient_parent(item.widget)
+
+    def __set_transient_parent(self, widget):
+        parent = self.__transient_parent
+        window = widget.window()
+        handle = window.windowHandle()
+        if handle is not None:
+            handle.setTransientParent(parent)
 
     def save_window_state(self):
         # type: () -> List[Tuple[SchemeNode, bytes]]
