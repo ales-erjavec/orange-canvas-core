@@ -295,6 +295,8 @@ class WidgetManager(QObject):
         # send all the post creation notification events
         workflow = self.__workflow
         assert workflow is not None
+        ev = NodeEvent(NodeEvent.NodeAdded, node)
+        QCoreApplication.sendEvent(w, ev)
         inputs = workflow.find_links(sink_node=node)
         for i, link in enumerate(inputs):
             ev = LinkEvent(LinkEvent.InputLinkAdded, link, i)
@@ -354,6 +356,8 @@ class WidgetManager(QObject):
             assert widget in self.__item_for_widget
             del self.__item_for_widget[widget]
             widget.removeEventFilter(self.__activation_monitor)
+            ev = NodeEvent(NodeEvent.NodeRemoved, node)
+            QCoreApplication.sendEvent(widget, ev)
             item.widget = None
             self.widget_for_node_removed.emit(node, widget)
             self.delete_widget_for_node(node, widget)
