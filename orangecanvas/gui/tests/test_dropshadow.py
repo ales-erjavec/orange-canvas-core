@@ -48,11 +48,13 @@ class TestDropShadow(test.QAppTestCase):
         ranim.start()
         self.qWait()
 
-    def test1(self):
-        class FT(QToolBar):
-            def paintEvent(self, e):
-                pass
+    class FT(QToolBar):
+        def paintEvent(self, e):
+            pass
 
+    def test1(self):
+
+        FT = self.FT # QToolBar
         w = QMainWindow()
         ftt, ftb = FT(), FT()
         ftt.setFixedHeight(15)

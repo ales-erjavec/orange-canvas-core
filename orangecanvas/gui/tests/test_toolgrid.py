@@ -85,13 +85,10 @@ class TestToolGrid(test.QAppTestCase):
                                  [action_a, action_b, action_c, action_d])
         assertOrdered()
 
-        triggered_actions = []
-
         def p(action):
             print(action.text())
 
         w.actionTriggered.connect(p)
-        w.actionTriggered.connect(triggered_actions.append)
         action_a.trigger()
 
         w.show()

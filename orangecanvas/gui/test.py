@@ -6,16 +6,17 @@ import unittest
 import gc
 from typing import Callable, Any
 
-from AnyQt.QtWidgets import QApplication, QWidget
+import AnyQt.QtCore
 from AnyQt.QtCore import (
     QCoreApplication, QTimer, QStandardPaths, QPoint, Qt, QMimeData, QPointF
 )
+
 from AnyQt.QtGui import (
     QMouseEvent, QDragEnterEvent, QDropEvent, QDragMoveEvent, QDragLeaveEvent,
     QContextMenuEvent
 )
+from AnyQt.QtWidgets import QApplication, QWidget
 from AnyQt.QtTest import QTest
-from AnyQt.QtCore import PYQT_VERSION
 
 DEFAULT_TIMEOUT = 50
 
@@ -52,8 +53,10 @@ class QCoreAppTestCase(unittest.TestCase):
         cls.app.setApplicationName(cls.__appname)
         cls.app.setOrganizationDomain(cls.__appdomain)
         cls.app.sendPostedEvents(None, 0)
-        # Keep app instance alive between tests with PyQt5 5.14.0 and later
-        if PYQT_VERSION <= 0x050e00:
+        if AnyQt.USED_API.lower() == "pyqt5" and \
+                AnyQt.QtCore.PYQT_VERSION <= 0x050e00:
+            # Keep app instance alive between tests with PyQt5 5.14.0 and later
+            # if PYQT_VERSION <= 0x050e00:
             cls.app = None
         super(QCoreAppTestCase, cls).tearDownClass()
         QStandardPaths.setTestModeEnabled(False)

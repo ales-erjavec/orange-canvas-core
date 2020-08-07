@@ -22,8 +22,8 @@ class TestWidgetToolBox(test.QAppTestCase):
 
         qt_reg = QtWidgetRegistry(reg)
 
-        triggered_actions1 = []
-        triggered_actions2 = []
+        # triggered_actions1 = []
+        # triggered_actions2 = []
 
         model = qt_reg.model()
         data_descriptions = qt_reg.widgets("Constants")
@@ -34,7 +34,7 @@ class TestWidgetToolBox(test.QAppTestCase):
 
         grid = ToolGrid(w)
         grid.setActions(actions)
-        grid.actionTriggered.connect(triggered_actions1.append)
+        # grid.actionTriggered.connect(triggered_actions1.append)
         layout.addWidget(grid)
 
         grid = WidgetToolGrid(w)
@@ -50,7 +50,7 @@ class TestWidgetToolBox(test.QAppTestCase):
             button = grid_layout.itemAtPosition(i // 4, i % 4).widget()
             self.assertIs(button.defaultAction(), actions[i])
 
-        grid.actionTriggered.connect(triggered_actions2.append)
+        # grid.actionTriggered.connect(triggered_actions2.append)
 
         layout.addWidget(grid)
 
@@ -67,7 +67,7 @@ class TestWidgetToolBox(test.QAppTestCase):
         reg = registry_tests.small_testing_registry()
         qt_reg = QtWidgetRegistry(reg)
 
-        triggered_actions = []
+        # triggered_actions = []
 
         model = qt_reg.model()
 
@@ -75,7 +75,7 @@ class TestWidgetToolBox(test.QAppTestCase):
 
         box = WidgetToolBox()
         box.setModel(model)
-        box.triggered.connect(triggered_actions.append)
+        # box.triggered.connect(triggered_actions.append)
         layout.addWidget(box)
 
         box.setButtonSize(QSize(50, 80))
