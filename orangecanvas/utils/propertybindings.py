@@ -121,6 +121,7 @@ class AbstractBoundProperty(QObject):
             self.set(source.get())
             self.notifyChanged()
 
+    @Slot()
     def unbind(self):
         # type: () -> None
         """
@@ -289,8 +290,7 @@ class BindingManager(QObject):
 
             source.changed.connect(self.__on_changed)
             self._bindings[source].append((target, source))
-            self.__on_changed(source)
-
+            self.__mark_modified(source)
             return None
 
     def bindings(self):
@@ -301,10 +301,13 @@ class BindingManager(QObject):
     def commit(self):
         self.__update()
 
-    def __on_changed(self, sender=None):
-        if sender is None:
-            sender = self.sender()
-        self._modified.add(sender)
+    @Slot()
+    def __on_changed(self):
+        sender = self.sender()
+        self.__mark_modified(sender)
+
+    def __mark_modified(self, binding):
+        self._modified.add(binding)
         if self.__submitPolicy == BindingManager.AutoSubmit:
             self.__update()
 
