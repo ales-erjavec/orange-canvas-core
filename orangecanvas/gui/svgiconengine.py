@@ -28,7 +28,7 @@ class SvgIconEngine(QIconEngine):
     contents : bytes
         The svg icon contents
     """
-    __slots__ = ("__contents", "__generator", "__cache_id")
+    # __slots__ = ("__contents", "__generator", "__cache_id")
 
     def __init__(self, contents):
         # type: (bytes) -> None
@@ -105,10 +105,10 @@ class StyledSvgIconEngine(QIconEngine):
     If neither `palette` nor `styleObject` are specified then the current
     `QApplication.palette` is used.
     """
-    __slots__ = (
-        "__contents", "__styled_contents_cache", "__palette", "__renderer",
-        "__cache_key", "__style_object",
-    )
+    # __slots__ = (
+    #     "__contents", "__styled_contents_cache", "__palette", "__renderer",
+    #     "__cache_key", "__style_object",
+    # )
 
     def __init__(
             self,
