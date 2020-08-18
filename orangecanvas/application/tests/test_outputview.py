@@ -1,9 +1,12 @@
 import sys
+from unittest import skipIf
+
 import multiprocessing.pool
 
 from datetime import datetime
 from threading import current_thread
 
+import AnyQt
 from AnyQt.QtCore import Qt, QThread, QTimer, QCoreApplication, QEvent
 from AnyQt.QtGui import QTextCharFormat, QColor
 
@@ -62,6 +65,7 @@ class TestOutputView(QAppTestCase):
         bold.write("Shutup")
         self.qWait()
 
+    @skipIf(lambda: AnyQt.USED_API == "PySide2", "PySide2 in use")
     def test_threadsafe(self):
         output = OutputView()
         output.resize(500, 300)
@@ -116,6 +120,7 @@ class TestOutputView(QAppTestCase):
         self.assertEqual(len(correct), 10000)
         pool.close()
 
+    @skipIf(lambda: AnyQt.USED_API == "PySide2", "PySide2 in use")
     def test_excepthook(self):
         output = OutputView()
         output.resize(500, 300)
