@@ -412,11 +412,11 @@ class SignalManager(QObject):
             signals = [s._replace(value=None) for s in signals]
         log.info("Scheduling signal data update for '%s'.", link)
         self._schedule(signals)
-        link.enabled_changed.connect(self.__on_link_enabled_changed)
+        link.enabled_changed.connect(self._on_link_enabled_changed)
 
     def __on_link_removed(self, link):
         # type: (SchemeLink) -> None
-        link.enabled_changed.disconnect(self.__on_link_enabled_changed)
+        link.enabled_changed.disconnect(self._on_link_enabled_changed)
         self.__link_extra.pop(link, None)
 
     def eventFilter(self, recv: QObject, event: QEvent) -> bool:
@@ -430,7 +430,7 @@ class SignalManager(QObject):
             self._schedule(signals)
         return super().eventFilter(recv, event)
 
-    def __on_link_enabled_changed(self, enabled):
+    def _on_link_enabled_changed(self, enabled):
         if enabled:
             link = self.sender()
             log.info("Link %s enabled. Scheduling signal data update.", link)
