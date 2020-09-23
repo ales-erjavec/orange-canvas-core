@@ -1672,6 +1672,7 @@ class NodeItem(QGraphicsWidget):
         """
         anchor = AnchorPoint(self, signal=signal)
         self.inputAnchorItem.addAnchor(anchor)
+        self.inputAnchorItem.setVisible(True)
         return anchor
 
     def removeInputAnchor(self, anchor):
@@ -1688,6 +1689,7 @@ class NodeItem(QGraphicsWidget):
         """
         anchor = AnchorPoint(self, signal=signal)
         self.outputAnchorItem.addAnchor(anchor)
+        self.outputAnchorItem.setVisible(True)
         return anchor
 
     def removeOutputAnchor(self, anchor):
