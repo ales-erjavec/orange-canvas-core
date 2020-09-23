@@ -7,6 +7,7 @@ Node Item
 import math
 import typing
 import string
+import warnings
 
 from operator import attrgetter
 from itertools import groupby
@@ -1375,8 +1376,13 @@ class NodeItem(QGraphicsWidget):
 
         self.prepareGeometryChange()
         self.__boundingRect = None
-
+        self.widget_description = None
+        self.category_description = None
         if widget_description is not None:
+            warnings.warn(
+                "'widget_description' parameter is deprecated", DeprecationWarning,
+                stacklevel=2
+            )
             self.setWidgetDescription(widget_description)
 
     @classmethod
@@ -1407,6 +1413,10 @@ class NodeItem(QGraphicsWidget):
         """
         Set widget description.
         """
+        warnings.warn(
+            "'setWidgetDescription' is deprecated", DeprecationWarning,
+            stacklevel=2
+        )
         self.widget_description = desc
         if desc is None:
             return
@@ -1433,6 +1443,10 @@ class NodeItem(QGraphicsWidget):
         """
         Set the widget category.
         """
+        warnings.warn(
+            "'setWidgetCategory' is deprecated", DeprecationWarning,
+            stacklevel=2
+        )
         self.category_description = desc
         if desc and desc.background:
             background = NAMED_COLORS.get(desc.background, desc.background)
@@ -1656,12 +1670,8 @@ class NodeItem(QGraphicsWidget):
         """
         Create and return a new input :class:`AnchorPoint`.
         """
-        if not (self.widget_description and self.widget_description.inputs):
-            raise ValueError("Widget has no inputs.")
-
         anchor = AnchorPoint(self, signal=signal)
         self.inputAnchorItem.addAnchor(anchor)
-
         return anchor
 
     def removeInputAnchor(self, anchor):
@@ -1676,12 +1686,8 @@ class NodeItem(QGraphicsWidget):
         """
         Create and return a new output :class:`AnchorPoint`.
         """
-        if not (self.widget_description and self.widget_description.outputs):
-            raise ValueError("Widget has no outputs.")
-
         anchor = AnchorPoint(self, signal=signal)
         self.outputAnchorItem.addAnchor(anchor)
-
         return anchor
 
     def removeOutputAnchor(self, anchor):
