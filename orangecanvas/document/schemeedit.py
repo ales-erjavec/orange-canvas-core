@@ -16,7 +16,7 @@ from operator import attrgetter
 from urllib.parse import urlencode
 from contextlib import ExitStack, contextmanager
 from typing import (
-    List, Tuple, Optional, Container, Dict, Any, Iterable, Generator
+    List, Tuple, Optional, Container, Dict, Any, Iterable, Generator, Sequence
 )
 
 from AnyQt.QtWidgets import (
@@ -37,6 +37,7 @@ from AnyQt.QtCore import (
 from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
 
 from orangecanvas.document.commands import UndoCommand
+from .interactions import DropHandler
 from ..registry import WidgetDescription, WidgetRegistry
 from .suggestions import Suggestions
 from .usagestatistics import UsageStatistics
@@ -184,6 +185,8 @@ class SchemeEditWidget(QWidget):
 
         # list of annotations when set to a clean state
         self.__cleanAnnotations = []
+
+        self.__dropHandlers = ()  # type: Sequence[DropHandler]
 
         self.__editFinishedMapper = QSignalMapper(self)
         self.__editFinishedMapper.mapped[QObject].connect(
@@ -1255,6 +1258,12 @@ class SchemeEditWidget(QWidget):
             self.setWindowModified(not clean)
             self.modificationChanged.emit(not clean)
 
+    def setDropHandlers(self, dropHandlers: Sequence[DropHandler]) -> None:
+        """
+        Set handlers for drop events onto the workflow view.
+        """
+        self.__dropHandlers = tuple(dropHandlers)
+
     def changeEvent(self, event):
         # type: (QEvent) -> None
         if event.type() == QEvent.FontChange:
@@ -1622,7 +1631,7 @@ class SchemeEditWidget(QWidget):
         if delegate is not None:
             return False
 
-        handler = interactions.DropAction(self)
+        handler = interactions.DropAction(self, dropHandlers=self.__dropHandlers)
         self._setUserInteractionHandler(handler)
         return False
 
