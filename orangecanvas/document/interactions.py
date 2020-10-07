@@ -1933,10 +1933,15 @@ class PluginDropHandler(DropHandler):
         super().__init__(**kwargs)
         self.__group = group
 
+    __entryPoints = None
+
     def entryPoints(self) -> Iterable[Tuple['EntryPoint', 'DropHandler']]:
         """
         Return an iterator over entry points and instantiated drop handlers.
         """
+        if self.__entryPoints:
+            return (yield from self.__entryPoints)
+        eps = []
         ws = pkg_resources.WorkingSet()
         ep_iter = ws.iter_entry_points(self.__group)
         for ep in ep_iter:
@@ -1956,6 +1961,8 @@ class PluginDropHandler(DropHandler):
                     log.exception("Error in default constructor of %s", val)
                 else:
                     yield ep, handler
+                    eps.append((ep, handler))
+        self.__entryPoints = tuple(eps)
 
     __accepts: Sequence[Tuple[EntryPoint, DropHandler]] = ()
 
