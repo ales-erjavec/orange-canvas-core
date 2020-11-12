@@ -18,6 +18,7 @@ from AnyQt.QtCore import QObject, QUrl, QDir
 
 from ..utils.pkgmeta import get_dist_url, is_develop_egg
 from . import provider
+from ..utils import assocv
 
 if typing.TYPE_CHECKING:
     from ..registry import WidgetRegistry, WidgetDescription
@@ -127,6 +128,26 @@ class HelpManager(QObject):
             return await provider.search_async(desc, timeout=timeout)
         else:
             raise KeyError(desc_id)
+
+    def resolve(self, url: QUrl):
+        self.initialize()
+        assert url.scheme().lower() == "help"
+
+        path = url.path()
+        try:
+            dist = pkg_resources.get_distribution(path)
+        except pkg_resources.ResolutionError:
+            raise LookupError
+
+        provider = get_help_provider_for_distribution(dist)
+        if provider is not None:
+            import types
+            query = url.query()
+            qs = urllib.parse.parse_qsl(query)
+            topic = assocv(qs, "topic")
+            if topic is not None:
+                rs = provider.search(types.SimpleNamespace(help_ref=topic[1]))
+                return rs
 
 
 def get_by_id(registry, descriptor_id):

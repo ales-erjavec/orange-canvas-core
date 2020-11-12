@@ -2330,6 +2330,20 @@ class CanvasMainWindow(QMainWindow):
                 if self_ is not None:
                     self_.__handle_help_query_response(url)
             loop.create_task(run(self.help.search_async(url), url))
+        elif url.scheme() == "help":
+            try:
+                url = self.help.resolve(url)
+            except LookupError:
+                mb = QMessageBox(
+                    icon=QMessageBox.Information,
+                    text=self.tr("No help available for '{}'")
+                             .format(url.toString()),
+                    parent=self,
+                )
+                mb.setAttribute(Qt.WA_DeleteOnClose)
+                mb.show()
+            else:
+                self.show_help(url)
         elif url.scheme() == "action" and url.path():
             action = self.findChild(QAction, url.path())
             if action is not None:
