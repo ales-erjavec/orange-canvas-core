@@ -133,3 +133,28 @@ def get_dist_meta(dist):
         return parse_meta(contents)
     else:
         return {}
+
+
+__WS = None
+
+
+def _working_set():
+    global __WS
+    if __WS is None:
+        __WS = pkg_resources.WorkingSet()
+    return __WS
+
+
+def extras_available(dist: 'Distribution') -> 'Dict[str, bool]':
+    def extra_resolved(dist: 'Distribution', extra: str):
+        try:
+            ws.resolve(
+                [pkg_resources.Requirement.parse(dist.project_name)],
+                extras=(extra,)
+            )
+        except pkg_resources.ResolutionError:
+            return False
+        else:
+            return True
+    ws = _working_set()
+    return {extra: extra_resolved(dist, extra) for extra in dist.extras}

@@ -14,7 +14,9 @@ import stat
 import logging
 import types
 import pkgutil
-from collections import namedtuple
+from functools import lru_cache
+from typing import Union, Optional, NamedTuple, Dict
+
 import pkg_resources
 
 from .description import (
@@ -25,23 +27,21 @@ from .description import (
 from . import VERSION_HEX
 from . import cache, WidgetRegistry
 from . import utils
+from ..utils.pkgmeta import extras_available as _extras_available
 
 log = logging.getLogger(__name__)
 
 
-_CacheEntry = \
-    namedtuple(
-        "_CacheEntry",
-        ["mod_path",         # Module path (filename)
-         "name",             # Module qualified import name
-         "mtime",            # Modified time
-         "project_name",     # distribution name (if available)
-         "project_version",  # distribution version (if available)
-         "exc_type",         # exception type when last trying to import
-         "exc_val",          # exception value (str of value)
-         "description"       # WidgetDescription instance
-         ]
-    )
+class _CacheEntry(NamedTuple):
+    mod_path: str         # Module path (filename)
+    name: str             # Module qualified import name
+    mtime: float          # Modified time
+    project_name: Optional[str]     # distribution name (if available)
+    project_version: str    # distribution version (if available)
+    extras_available: Dict[str, bool]
+    exc_type: Optional[type]        # exception type when last trying to import
+    exc_val: Optional[str]          # exception value (str of value)
+    description: WidgetDescription      # WidgetDescription instance
 
 
 def default_category_for_module(module):
@@ -55,6 +55,11 @@ def default_category_for_module(module):
     name = module.__name__.rsplit(".", 1)[-1]
     qualified_name = module.__name__
     return CategoryDescription(name=name, qualified_name=qualified_name)
+
+
+@lru_cache()
+def extras_available(dist):
+    return _extras_available(dist)
 
 
 class WidgetDiscovery(object):
@@ -315,8 +320,14 @@ class WidgetDiscovery(object):
 
         return desc
 
-    def cache_insert(self, module, mtime, description, distribution=None,
-                     error=None):
+    def cache_insert(
+            self,
+            module: Union[types.ModuleType, str],
+            mtime: float,
+            description: WidgetDescription,
+            distribution: Optional[pkg_resources.Distribution] = None,
+            error=None
+    ) -> None:
         """
         Insert the description into the cache.
         """
@@ -333,6 +344,9 @@ class WidgetDiscovery(object):
         if distribution is not None:
             project_name = distribution.project_name
             project_version = distribution.version
+            extras = extras_available(distribution)
+        else:
+            extras = {}
 
         exc_type = exc_val = None
 
@@ -344,12 +358,13 @@ class WidgetDiscovery(object):
                 exc_type = type(error)
                 exc_val = repr(error.args)
 
-        self.cached_descriptions[mod_path] = \
-                _CacheEntry(mod_path, mod_name, mtime, project_name,
-                            project_version, exc_type, exc_val,
-                            description)
+        self.cached_descriptions[mod_path] = _CacheEntry(
+            mod_path, mod_name, mtime, project_name,
+            project_version, extras, exc_type, exc_val,
+            description
+        )
 
-    def cache_get(self, mod_path, distribution=None):
+    def cache_get(self, mod_path, distribution=None) -> _CacheEntry:
         """
         Get the cache entry for `mod_path`.
         """
@@ -376,6 +391,9 @@ class WidgetDiscovery(object):
             if distribution is not None:
                 if entry.project_name != distribution.project_name or \
                         entry.project_version != distribution.version:
+                    return False
+
+                if entry.extras_available != extras_available(distribution):
                     return False
 
             if entry.exc_type == WidgetSpecificationError:
