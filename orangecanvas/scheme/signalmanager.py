@@ -338,7 +338,7 @@ class SignalManager(QObject):
         """
         state = SignalManager.RuntimeState(state)
         if self.__runtime_state != state:
-            self.__runtime_state = state
+            self.__runtime_state = SignalManager.RuntimeState(state)
             self.runtimeStateChanged.emit(self.__runtime_state)
 
     def runtime_state(self):
