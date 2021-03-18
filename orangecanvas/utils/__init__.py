@@ -1,6 +1,7 @@
 import enum
 import operator
 import types
+from collections import deque
 from functools import reduce
 
 import typing
@@ -29,6 +30,7 @@ __all__ = [
     "findf",
     "set_flag",
     "UNUSED",
+    "apply_all"
 ]
 
 if typing.TYPE_CHECKING:
@@ -289,3 +291,10 @@ def UNUSED(*_unused_args) -> None:
     ...     UNUSED(bar, baz)
     ...     return True
     """
+
+
+def apply_all(op, seq):
+    # type: (Callable[[A], Any], Iterable[A]) -> None
+    """Apply `op` on all elements of `seq`."""
+    # from itertools recipes `consume`
+    deque(map(op, seq), maxlen=0)
