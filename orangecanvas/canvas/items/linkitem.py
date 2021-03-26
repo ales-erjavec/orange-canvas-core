@@ -567,12 +567,24 @@ class LinkItem(QGraphicsWidget):
         # type: () -> None
         self.prepareGeometryChange()
         self.__boundingRect = None
+        path = self.curveItem.curvePath()
+        angle = 0.0
+        if not path.isEmpty():
+            angle = path.angleAtPercent(0.5)
+
+        # Rotate text to be on top of link
+        rotate_above = 90 <= angle < 270
 
         if self.__sourceName or self.__sinkName:
             if self.__sourceName != self.__sinkName:
-                text = ("<nobr>{0}</nobr> \u2192 <nobr>{1}</nobr>"
-                        .format(escape(self.__sourceName),
-                                escape(self.__sinkName)))
+                t1, t2 = self.__sourceName, self.__sinkName
+                arrow = "\u2192"
+                if rotate_above:
+                    # reverse the arrow direction
+                    t1, t2 = t2, t1
+                    arrow = "\u2190"
+                text = (self.tr("<nobr>{0}</nobr> {arrow} <nobr>{1}</nobr>")
+                        .format(escape(t1), escape(t2), arrow=arrow))
             else:
                 # If the names are the same show only one.
                 # Is this right? If the sink has two input channels of the
@@ -585,7 +597,6 @@ class LinkItem(QGraphicsWidget):
         self.linkTextItem.setHtml(
             '<div align="center" style="font-size: small" >{0}</div>'
             .format(text))
-        path = self.curveItem.curvePath()
 
         # Constrain the text width if it is too long to fit on a single line
         # between the two ends
@@ -610,15 +621,13 @@ class LinkItem(QGraphicsWidget):
 
         if not path.isEmpty():
             center = path.pointAtPercent(0.5)
-            angle = path.angleAtPercent(0.5)
-
             brect = self.linkTextItem.boundingRect()
 
             transform = QTransform()
             transform.translate(center.x(), center.y())
 
             # Rotate text to be on top of link
-            if 90 <= angle < 270:
+            if rotate_above:
                 transform.rotate(180 - angle)
             else:
                 transform.rotate(-angle)
