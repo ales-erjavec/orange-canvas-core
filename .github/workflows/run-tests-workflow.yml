@@ -17,55 +17,60 @@ jobs:
       matrix:
         include:
           # Linux
-          - os: ubuntu-16.04
-            python-version: 3.6
-            test-env: "PyQt5~=5.9.2"
-
-          - os: ubuntu-18.04
-            python-version: 3.7
-            test-env: "PyQt5~=5.12.0"
-
-          - os: ubuntu-20.04
-            python-version: 3.8
-            test-env: "PyQt5~=5.14.0"
-
-          - os: ubuntu-20.04
-            python-version: 3.9
-            test-env: "PyQt5~=5.15.0"
-
+#          - os: ubuntu-16.04
+#            python-version: 3.6
+#            test-env: "PyQt5~=5.9.2"
+#
+#          - os: ubuntu-18.04
+#            python-version: 3.7
+#            test-env: "PyQt5~=5.12.0"
+#
+#          - os: ubuntu-20.04
+#            python-version: 3.8
+#            test-env: "PyQt5~=5.14.0"
+#
+#          - os: ubuntu-20.04
+#            python-version: 3.9
+#            test-env: "PyQt5~=5.15.0"
+#
           # macOS
-          - os: macos-10.15
-            python-version: 3.6
-            test-env: "PyQt5~=5.9.2"
-
-          - os: macos-10.15
-            python-version: 3.7
-            test-env: "PyQt5~=5.12.0"
-
-          - os: macos-10.15
-            python-version: 3.8
-            test-env: "PyQt5~=5.14.0"
+#          - os: macos-10.15
+#            python-version: 3.6
+#            test-env: "PyQt5~=5.9.2"
+#
+#          - os: macos-10.15
+#            python-version: 3.7
+#            test-env: "PyQt5~=5.12.0"
+#
+#          - os: macos-10.15
+#            python-version: 3.8
+#            test-env: "PyQt5~=5.14.0"
 
           - os: macos-10.15
             python-version: 3.9
-            test-env: "PyQt5~=5.15.0"
+            test-env: "PyQt5==5.15.2"
 
-          # Windows
-          - os: windows-2019
-            python-version: 3.6
-            test-env: "PyQt5~=5.9.2"
-
-          - os: windows-2019
-            python-version: 3.7
-            test-env: "PyQt5~=5.12.0"
-
-          - os: windows-2019
-            python-version: 3.8
-            test-env: "PyQt5~=5.14.0"
-
-          - os: windows-2019
+          - os: macos-10.15
             python-version: 3.9
-            test-env: "PyQt5~=5.15.0"
+            test-env: "PyQt5==5.15.0"
+
+
+#          # Windows
+#          - os: windows-2019
+#            python-version: 3.6
+#            test-env: "PyQt5~=5.9.2"
+#
+#          - os: windows-2019
+#            python-version: 3.7
+#            test-env: "PyQt5~=5.12.0"
+#
+#          - os: windows-2019
+#            python-version: 3.8
+#            test-env: "PyQt5~=5.14.0"
+#
+#          - os: windows-2019
+#            python-version: 3.9
+#            test-env: "PyQt5~=5.15.0"
     steps:
       - uses: actions/checkout@v2
       - name: Setup Python
@@ -101,7 +106,9 @@ jobs:
 
       - name: Run Tests
         if: ${{ !startsWith(runner.os, 'Linux') }}
-        run: pytest -v --cov=orangecanvas
+#        run: pytest -v --cov=orangecanvas
+#        run: python -m unittest -v
+        run: lldb --batch -o run -o c -k bt -k 'quit 1' -- python -m unittest orangecanvas.document.tests.test_schemeedit.TestSchemeEdit.test_node_rename_click_selected
 
       - name: Run Tests with Xvfb
         if: ${{ startsWith(runner.os, 'Linux') }}
