@@ -1483,7 +1483,7 @@ class Installer(QObject):
                     self.pip.uninstall(pkg.local)
         except CommandFailed as ex:
             self.error.emit(
-                "Command failed: python {}".format(ex.cmd),
+                "Command failed: {}".format(ex.cmd),
                 pkg, ex.retcode, ex.output
             )
             return
