@@ -89,6 +89,10 @@ class WorkflowEvent(QEvent):
     #: the workflow view
     ActivateParentRequest = QEvent.Type(QEvent.registerEventType())
 
+    ExecutionStarted = QEvent.Type(QEvent.registerEventType())
+    ExecutionPaused = QEvent.Type(QEvent.registerEventType())
+    ExecutionStopped = QEvent.Type(QEvent.registerEventType())
+
 
 class NodeEvent(WorkflowEvent):
     """

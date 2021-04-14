@@ -26,7 +26,7 @@ from typing import (
 from AnyQt.QtCore import QObject, QTimer, QSettings, QEvent, QCoreApplication
 from AnyQt.QtCore import pyqtSignal, pyqtSlot as Slot
 
-from . import LinkEvent, NodeEvent
+from . import LinkEvent, NodeEvent, WorkflowEvent
 from ..utils import unique, mapping_get, group_by_all
 from ..registry import OutputSignal, InputSignal
 from .scheme import Scheme, SchemeNode, SchemeLink
@@ -277,6 +277,10 @@ class SignalManager(QObject):
         """
         return bool(self.__input_queue)
 
+    def __send_workflow_event(self, etype: QEvent.Type):
+        if self.__workflow is not None:
+            QCoreApplication.sendEvent(self.__workflow, WorkflowEvent(etype))
+
     def start(self):  # type: () -> None
         """
         Start the update loop.
@@ -290,6 +294,7 @@ class SignalManager(QObject):
             self.__state = SignalManager.Running
             self.stateChanged.emit(SignalManager.Running)
             self._update()
+            self.__send_workflow_event(WorkflowEvent.ExecutionStarted)
 
     def stop(self):  # type: () -> None
         """
@@ -305,6 +310,7 @@ class SignalManager(QObject):
             self.__state = SignalManager.Stopped
             self.stateChanged.emit(SignalManager.Stopped)
             self.__update_timer.stop()
+            self.__send_workflow_event(WorkflowEvent.ExecutionStopped)
 
     def pause(self):  # type: () -> None
         """
@@ -314,6 +320,7 @@ class SignalManager(QObject):
             self.__state = SignalManager.Paused
             self.stateChanged.emit(SignalManager.Paused)
             self.__update_timer.stop()
+            self.__send_workflow_event(WorkflowEvent.ExecutionPaused)
 
     def resume(self):
         # type: () -> None
@@ -324,6 +331,7 @@ class SignalManager(QObject):
             self.__state = SignalManager.Running
             self.stateChanged.emit(self.__state)
             self._update()
+            self.__send_workflow_event(WorkflowEvent.ExecutionStarted)
 
     def step(self):
         # type: () -> None
