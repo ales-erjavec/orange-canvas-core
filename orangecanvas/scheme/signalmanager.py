@@ -23,10 +23,10 @@ from typing import (
     Sequence, Union, DefaultDict, Type
 )
 
-from AnyQt.QtCore import QObject, QTimer, QSettings, QEvent
+from AnyQt.QtCore import QObject, QTimer, QSettings, QEvent, QCoreApplication
 from AnyQt.QtCore import pyqtSignal, pyqtSlot as Slot
 
-from . import LinkEvent
+from . import LinkEvent, NodeEvent
 from ..utils import unique, mapping_get, group_by_all
 from ..registry import OutputSignal, InputSignal
 from .scheme import Scheme, SchemeNode, SchemeLink
@@ -187,11 +187,13 @@ class SignalManager(QObject):
     #: emitting `finished`.
     started = pyqtSignal()
 
-    def __init__(self, parent=None, *, max_running=None, **kwargs):
-        # type: (Optional[QObject], Optional[int], Any) -> None
+    def __init__(self, parent: Optional[QObject] = None, *,
+                 max_running: Optional[int] = None, **kwargs) -> None:
         super().__init__(parent, **kwargs)
         self.__workflow = None  # type: Optional[Scheme]
         self.__input_queue = []  # type: List[Signal]
+        # List of we need to dispatch NodeEvent.NodeInitialize to
+        self.__pending_init = []  # type: List[SchemeNode]
 
         # mapping a node to its current outputs
         self.__node_outputs = {}  # type: Dict[SchemeNode, DefaultDict[OutputSignal, _OutputState]]
@@ -249,6 +251,7 @@ class SignalManager(QObject):
             self.__workflow.removeEventFilter(self)
             self.__node_outputs = {}
             self.__input_queue = []
+            self.__pending_init = []
 
         self.__workflow = workflow
 
@@ -258,10 +261,7 @@ class SignalManager(QObject):
             workflow.link_added.connect(self.__on_link_added)
             workflow.link_removed.connect(self.__on_link_removed)
             for node in workflow.nodes:
-                self.__node_outputs[node] = defaultdict(_OutputState)
-                node.state_changed.connect(self._update)
-                node.installEventFilter(self)
-
+                self.__on_node_added(node)
             for link in workflow.links:
                 self.__on_link_added(link)
             workflow.installEventFilter(self)
@@ -374,6 +374,10 @@ class SignalManager(QObject):
         del self.__node_outputs[node]
         node.state_changed.disconnect(self._update)
         node.removeEventFilter(self)
+        try:
+            self.__pending_init.remove(node)
+        except ValueError:
+            pass
 
     def __on_node_added(self, node):
         # type: (SchemeNode) -> None
@@ -381,6 +385,8 @@ class SignalManager(QObject):
         # schedule update pass on state change
         node.state_changed.connect(self._update)
         node.installEventFilter(self)
+        self.__pending_init.append(node)
+        self._update()
 
     def __on_link_added(self, link):
         # type: (SchemeLink) -> None
@@ -944,6 +950,20 @@ class SignalManager(QObject):
         ----
         The node's ancestors are only computed over enabled links.
         """
+        return self.__update_candidates(self.pending_nodes())
+
+    def __update_candidates(
+            self, pending: Sequence[SchemeNode]
+    ) -> Sequence[SchemeNode]:
+        """
+        Return a subset of `pending` nodes that have no ancestor which is
+        either itself scheduled for update or is in a blocking/invalidated
+        state).
+
+        Note
+        ----
+        The node's ancestors are only computed over enabled links.
+        """
         if self.__workflow is None:
             return []
         workflow = self.__workflow
@@ -973,7 +993,6 @@ class SignalManager(QObject):
             set([]),
         )  # type: Set[SchemeNode]
 
-        pending = self.pending_nodes()
         pending_ = set()
         for n in pending:
             depend = set(dependents(n))
@@ -1015,7 +1034,7 @@ class SignalManager(QObject):
                         "current update.")
             return
 
-        if not self.__input_queue:
+        if not self.__input_queue and not self.__pending_init:
             return
         if self.__has_finished:
             self.__has_finished = False
@@ -1025,8 +1044,18 @@ class SignalManager(QObject):
             # Schedule another update (will be a noop if nothing to do).
             self._update()
 
+    def __process_pending_init(self, node: SchemeNode):
+        if node in self.__pending_init:
+            self.__pending_init.remove(node)
+            event = NodeEvent(NodeEvent.NodeInitialize, node)
+            QCoreApplication.sendEvent(node, event)
+
     def __process_next_helper(self, use_max_active=True) -> bool:
-        eligible = [n for n in self.node_update_front() if self.is_ready(n)]
+        # we also process __pending_init here so we need to explicitly add
+        # these to the candidate list.
+        pending = list(unique(self.__pending_init + self.pending_nodes()))
+        eligible = [n for n in self.__update_candidates(pending)
+                    if self.is_ready(n)]
         if not eligible:
             return False
         max_active = self.max_active()
@@ -1059,7 +1088,16 @@ class SignalManager(QObject):
         if selected_node is None:
             selected_node = eligible[0]
 
-        self.process_node(selected_node)
+        if selected_node in self.__pending_init:
+            self.__process_pending_init(selected_node)
+            # The state can change due to the event. Check suitability again
+            if not (selected_node in self.node_update_front() and
+                    self.is_ready(selected_node) and
+                    not self.is_blocking(selected_node)):
+                return True
+
+        if self.pending_input_signals(selected_node):
+            self.process_node(selected_node)
         self.__maybe_emit_finished()
         return True
 

@@ -81,8 +81,7 @@ class TestSignalManager(QCoreAppTestCase):
         workflow.remove_link(l0)
         sm.send(n0, n0.description.outputs[0], 1)
         sm.send(n1, n1.description.outputs[0], 2)
-        sm.process_queued()
-
+        assert QSignalSpy(sm.processingFinished).wait()
         self.assertFalse(sm.has_pending())
         l0.set_enabled(False)
         workflow.insert_link(0, l0)

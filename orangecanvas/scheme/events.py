@@ -59,7 +59,8 @@ class WorkflowEvent(QEvent):
     OutputLinkStateChange = QEvent.Type(QEvent.registerEventType())
 
     #: Request for Node's runtime initialization (e.g.
-    #: load required data, establish connection, ...)
+    #: load required data, establish connection, ...). This event is sent to
+    #: the node once by the signal manager before the first update.
     NodeInitialize = QEvent.Type(QEvent.registerEventType())
 
     #: Restore the node from serialized state
