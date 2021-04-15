@@ -77,6 +77,11 @@ class Signal(
         """Alias for `self.link.sink_channel`"""
         return self.link.sink_channel
 
+    @property
+    def node(self) -> SchemeNode:
+        """Alias for `self.link.sink_node`"""
+        return self.link.sink_node
+
     New: 'Type[New]'
     Update: 'Type[Update]'
     Close: 'Type[Close]'
@@ -753,7 +758,7 @@ class SignalManager(QObject):
         -------
         pending : bool
         """
-        return node in [signal.link.sink_node for signal in self.__input_queue]
+        return node in [signal.node for signal in self.__input_queue]
 
     def pending_nodes(self):
         # type: () -> List[SchemeNode]
@@ -767,7 +772,7 @@ class SignalManager(QObject):
         -------
         nodes : List[SchemeNode]
         """
-        return list(unique(sig.link.sink_node for sig in self.__input_queue))
+        return list(unique(sig.node for sig in self.__input_queue))
 
     def pending_input_signals(self, node):
         # type: (SchemeNode) -> List[Signal]
@@ -775,7 +780,7 @@ class SignalManager(QObject):
         Return a list of pending input signals for node.
         """
         return [signal for signal in self.__input_queue
-                if node is signal.link.sink_node]
+                if node is signal.node]
 
     def remove_pending_signals(self, node):
         # type: (SchemeNode) -> None
