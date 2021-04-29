@@ -11,6 +11,7 @@ jobs:
       PIP_NO_PIP_VERSION_CHECK: 1
       PIP_CACHE_DIR: .pip-cache
       PIP_PREFER_BINARY: 1
+      PIP_EXTRA_INDEX_URL: https://pypi.anaconda.org/ales-erjavec/simple/
 
     strategy:
       fail-fast: False
