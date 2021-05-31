@@ -231,8 +231,7 @@ class Node(Element):
     title = Property(str, _title, set_title)  # type: ignore
 
     def icon(self) -> QIcon:
-        desc = self.description
-        return icon_loader.from_description(desc).get(desc.icon)
+        return QIcon()
 
     #: Position of the node in the scheme has changed
     position_changed = Signal(tuple)
@@ -551,6 +550,10 @@ class SchemeNode(Node):
                 return channel
         raise ValueError("%r is not a valid output channel name for %r." %
                          (name, self.description.name))
+
+    def icon(self) -> QIcon:
+        desc = self.description
+        return icon_loader.from_description(desc).get(desc.icon)
 
     def __str__(self):
         return "SchemeNode(description_id=%r, title=%r, ...)" % \
