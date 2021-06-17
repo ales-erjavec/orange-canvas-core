@@ -469,8 +469,8 @@ class SignalManager(QObject):
                        if sig.link is link]
             return {sig.id: sig.value for sig in pending}
 
-    def send(self, node, channel, value, *args, **kwargs):
-        # type: (SchemeNode, OutputSignal, Any, Any, Any) -> None
+    def send(self, node, channel, value):
+        # type: (SchemeNode, OutputSignal, Any) -> None
         """
         Send the `value` on the output `channel` from `node`.
 
@@ -484,48 +484,20 @@ class SignalManager(QObject):
             The nodes output on which the value is sent.
         value : Any
             The value to send,
-        id : Any
-            Signal id.
-
-            .. deprecated:: 0.1.19
 
         """
-        if self.__workflow is None:
-            raise RuntimeError("'send' called with no workflow!.")
-
-        # parse deprecated id parameter from *args, **kwargs.
-        def _id_(id):
-            return id
-        try:
-            id = _id_(*args, **kwargs)
-        except TypeError:
-            id = None
-        else:
-            warnings.warn(
-                "`id` parameter is deprecated and will be removed in v0.2",
-                FutureWarning, stacklevel=2
-            )
-
-        log.debug("%r sending %r (id: %r) on channel %r",
-                  node.title, type(value), id, channel.name)
-
         scheme = self.__workflow
-
+        if scheme is None:
+            raise RuntimeError("'send' called with no workflow!.")
+        log.debug("%r sending %r on channel %r",
+                  node.title, type(value), channel.name)
         state = self.__node_outputs[node][channel]
-
-        if state.outputs and id not in state.outputs:
-            raise RuntimeError(
-                "Sending multiple values on the same output channel via "
-                "different ids is no longer supported."
-            )
-
         sigtype: Type[Signal]
-        if id in state.outputs:
+        if state.outputs:
             sigtype = Signal.Update
         else:
             sigtype = Signal.New
-
-        state.outputs[id] = value
+        state.outputs[None] = value
         assert len(state.outputs) == 1
         # clear invalidated flag
         if state.flags & _OutputState.Invalidated:
@@ -540,7 +512,7 @@ class SignalManager(QObject):
         for link in links:
             links_in = scheme.input_links(link.sink_node)
             index = links_in.index(link)
-            signals.append(sigtype(link, value, id, index=index))
+            signals.append(sigtype(link, value, index=index))
             link.set_runtime_state_flag(Link.Invalidated, False)
 
         self._schedule(signals)
