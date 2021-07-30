@@ -39,6 +39,7 @@ class TestSignalManager(QCoreAppTestCase):
 
     def test(self):
         workflow = self.scheme
+        root = workflow.root()
         sm = TestingSignalManager()
         sm.set_workflow(workflow)
         sm.set_workflow(workflow)
@@ -51,7 +52,7 @@ class TestSignalManager(QCoreAppTestCase):
         sm.stop()
         sm.pause()
         sm.resume()
-        n0, n1, n3 = workflow.nodes
+        n0, n1, n3 = root.nodes()
 
         sm.send(n0, n0.description.outputs[0], 'hello')
         sm.send(n1, n1.description.outputs[0], 'hello')
@@ -62,7 +63,7 @@ class TestSignalManager(QCoreAppTestCase):
         self.assertEqual(n3.property("-input-right"), 'hello')
 
         self.assertFalse(sm.has_pending())
-        workflow.remove_link(workflow.links[0])
+        workflow.remove_link(root.links()[0])
         self.assertTrue(sm.has_pending())
 
         spy = QSignalSpy(sm.processingFinished[SchemeNode])
@@ -76,8 +77,8 @@ class TestSignalManager(QCoreAppTestCase):
         sm = TestingSignalManager()
         sm.set_workflow(workflow)
         sm.start()
-        n0, n1, n2 = workflow.nodes
-        l0, l1 = workflow.links
+        n0, n1, n2 = workflow.root().nodes()
+        l0, l1 = workflow.root().links()
         workflow.remove_link(l0)
         sm.send(n0, n0.description.outputs[0], 1)
         sm.send(n1, n1.description.outputs[0], 2)
@@ -104,8 +105,8 @@ class TestSignalManager(QCoreAppTestCase):
         sm.set_workflow(workflow)
         sm.start()
 
-        n0, n1, n2 = workflow.nodes[:3]
-        l0, l1 = workflow.links[:2]
+        n0, n1, n2 = workflow.root().nodes()[:3]
+        l0, l1 = workflow.root().links()[:2]
 
         self.assertFalse(l0.runtime_state() & SchemeLink.Invalidated)
         sm.send(n0, n0.description.outputs[0], 'hello')
@@ -152,8 +153,8 @@ class TestSignalManager(QCoreAppTestCase):
         sm = TestingSignalManager()
         sm.set_workflow(workflow)
         sm.start()
-        n0, n1, n3 = workflow.nodes[:3]
-        l0, l1 = workflow.links[:2]
+        n0, n1, n3 = workflow.root().nodes()[:3]
+        l0, l1 = workflow.root().links()[:2]
 
         self.assertFalse(n3.test_state_flags(SchemeNode.Pending))
         self.assertFalse(l0.runtime_state() & SchemeLink.Pending)
@@ -173,7 +174,7 @@ class TestSignalManager(QCoreAppTestCase):
         sm.set_workflow(workflow)
         sm.start()
 
-        n0, n1, n3 = workflow.nodes[:3]
+        n0, n1, n3 = workflow.root().nodes()[:3]
         sm.send(n0, n0.output_channel("value"), 'hello')
         sm.send(n1, n1.output_channel("value"), 'hello')
         self.assertIn(n3, sm.node_update_front())
@@ -191,7 +192,7 @@ class TestSignalManager(QCoreAppTestCase):
         sm.set_workflow(workflow)
         sm.start()
 
-        n0, n1, n3 = workflow.nodes[:3]
+        n0, n1, n3 = workflow.root().nodes()[:3]
         start_spy = QSignalSpy(sm.started)
         fin_spy = QSignalSpy(sm.finished)
         sm.send(n0, n0.output_channel("value"), 'hello')
@@ -206,7 +207,7 @@ class TestSignalManager(QCoreAppTestCase):
 
     def test_compress_signals(self):
         workflow = self.scheme
-        link = workflow.links[0]
+        link = workflow.root().links()[0]
         self.assertSequenceEqual(compress_signals([]), [])
         signals_in = [
             Signal(link, 1, None),
@@ -256,7 +257,7 @@ class TestSignalManager(QCoreAppTestCase):
     def test_compress_signals_single(self):
         New, Update, Close = Signal.New, Signal.Update, Signal.Close
         workflow = self.scheme
-        link = workflow.links[0]
+        link = workflow.root().links()[0]
         self.assertSequenceEqual(
             compress_single([]), []
         )
@@ -348,7 +349,8 @@ class TestSignalManager(QCoreAppTestCase):
         )
 
     def test_compress_signals_typed(self):
-        l1, l2 = self.scheme.links[0], self.scheme.links[1]
+        links = self.scheme.root().links()
+        l1, l2 = links[0], links[1]
         New, Update, Close = Signal.New, Signal.Update, Signal.Close
         signals = [
             New(l1, 1, index=0),
