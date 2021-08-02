@@ -265,7 +265,9 @@ class WidgetManager(QObject):
             toolTip=self.tr("Raise containing canvas workflow window"),
             shortcut=QKeySequence(Qt.ControlModifier | Qt.Key_Up)
         )
-        raise_canvas.triggered.connect(self.__on_activate_parent)
+        raise_canvas.triggered.connect(
+            partial(self.__on_activate_parent, node)
+        )
         raise_descendants = QAction(
             self.tr("Raise Descendants"), w,
             objectName="action-canvas-raise-descendants",
@@ -566,8 +568,8 @@ class WidgetManager(QObject):
             item.errorwidget.raise_()
             item.errorwidget.activateWindow()
 
-    def __on_activate_parent(self):
-        event = WorkflowEvent(WorkflowEvent.ActivateParentRequest)
+    def __on_activate_parent(self, node):
+        event = NodeEvent(WorkflowEvent.ActivateParentRequest, node)
         QCoreApplication.sendEvent(self.scheme(), event)
 
     def eventFilter(self, recv, event):
