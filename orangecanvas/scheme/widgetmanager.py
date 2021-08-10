@@ -15,7 +15,7 @@ from AnyQt.QtCore import Slot, Signal
 from AnyQt.QtGui import QKeySequence
 from AnyQt.QtWidgets import QWidget, QLabel, QAction
 
-from orangecanvas.scheme import SchemeNode, Scheme, NodeEvent, LinkEvent
+from orangecanvas.scheme import SchemeNode, Scheme, NodeEvent, LinkEvent, MetaNode
 from orangecanvas.scheme.events import WorkflowEvent
 from orangecanvas.scheme.node import UserMessage
 
@@ -125,7 +125,7 @@ class WidgetManager(QObject):
 
         if self.__workflow is not None:
             # cleanup
-            for node in self.__workflow.nodes:
+            for node in self.__workflow.all_nodes():
                 self.__remove_node(node)
             self.__workflow.node_added.disconnect(self.__on_node_added)
             self.__workflow.node_removed.disconnect(self.__on_node_removed)
@@ -138,7 +138,7 @@ class WidgetManager(QObject):
         workflow.node_removed.connect(
             self.__on_node_removed, Qt.UniqueConnection)
         workflow.installEventFilter(self)
-        for node in workflow.nodes:
+        for node in workflow.all_nodes():
             self.__add_node(node)
 
     def workflow(self):
@@ -159,7 +159,7 @@ class WidgetManager(QObject):
                 self.__init_timer.stop()
                 # create all
                 if self.__workflow is not None:
-                    for node in self.__workflow.nodes:
+                    for node in self.__workflow.all_nodes():
                         self.ensure_created(node)
             elif self.__creation_policy == WidgetManager.Normal:
                 if not self.__init_timer.isActive() and self.__init_queue:
@@ -221,7 +221,7 @@ class WidgetManager(QObject):
         if self.__workflow is None:
             return
 
-        if node not in self.__workflow.nodes:
+        if node not in self.__workflow.all_nodes():
             return
 
         if node in self.__init_queue:
@@ -311,7 +311,10 @@ class WidgetManager(QObject):
         """
         if self.__workflow is None:
             return
-        if node not in self.__workflow.nodes:
+        # ignore MetaNodes and co.
+        if not isinstance(node, SchemeNode):
+            return
+        if node not in self.__workflow.all_nodes():
             return
         item = self.__item_for_node.get(node)
         if item is None:
@@ -320,9 +323,9 @@ class WidgetManager(QObject):
     def __on_node_added(self, node):
         # type: (SchemeNode) -> None
         assert self.__workflow is not None
-        assert node in self.__workflow.nodes
-        assert node not in self.__item_for_node
-        self.__add_node(node)
+        # ignore MetaNodes and co.
+        if isinstance(node, SchemeNode):
+            self.__add_node(node)
 
     def __add_node(self, node):
         # type: (SchemeNode) -> None
@@ -337,7 +340,7 @@ class WidgetManager(QObject):
 
     def __on_node_removed(self, node):  # type: (SchemeNode) -> None
         assert self.__workflow is not None
-        assert node not in self.__workflow.nodes
+        assert node not in self.__workflow.all_nodes()
         self.__remove_node(node)
 
     def __remove_node(self, node):  # type: (SchemeNode) -> None
@@ -366,7 +369,7 @@ class WidgetManager(QObject):
         if self.__init_queue:
             node = self.__init_queue.popleft()
             assert self.__workflow is not None
-            assert node in self.__workflow.nodes
+            assert node in self.__workflow.all_nodes()
             log.debug("__process_init_queue: '%s'", node.title)
             try:
                 self.ensure_created(node)
@@ -411,7 +414,7 @@ class WidgetManager(QObject):
                 if item is not None and item.widget is not None
                 else False)
             ,
-            map(self.__item_for_node.get, workflow.nodes))
+            map(self.__item_for_node.get, workflow.all_nodes()))
         self.__raise_and_activate(items)
 
     def set_float_widgets_on_top(self, float_on_top):
@@ -433,7 +436,7 @@ class WidgetManager(QObject):
 
         workflow = self.__workflow  # type: Scheme
         state = []
-        for node in workflow.nodes:  # type: SchemeNode
+        for node in workflow.all_nodes():  # type: SchemeNode
             item = self.__item_for_node.get(node, None)
             if item is None:
                 continue
@@ -454,13 +457,13 @@ class WidgetManager(QObject):
         workflow = self.__workflow  # type: Scheme
         visible = {node for node, _ in state}
         # first hide all other widgets
-        for node in workflow.nodes:
+        for node in workflow.all_nodes():
             if node not in visible:
                 # avoid creating widgets if not needed
                 item = self.__item_for_node.get(node, None)
                 if item is not None and item.widget is not None:
                     item.widget.hide()
-        allnodes = set(workflow.nodes)
+        allnodes = set(workflow.all_nodes())
         # restore state for visible group; windows are stacked as they appear
         # in the state list.
         w = None
@@ -505,7 +508,7 @@ class WidgetManager(QObject):
             scheme = self.scheme()
             assert scheme is not None
             ancestors = [self.__item_for_node.get(p)
-                         for p in scheme.parents(item.node)]
+                         for p in scheme.parent_nodes(item.node)]
             self.__raise_and_activate(filter(None, reversed(ancestors)))
 
     @Slot(SchemeNode)
@@ -519,7 +522,7 @@ class WidgetManager(QObject):
             scheme = self.scheme()
             assert scheme is not None
             descendants = [self.__item_for_node.get(p)
-                           for p in scheme.children(item.node)]
+                           for p in scheme.child_nodes(item.node)]
             self.__raise_and_activate(filter(None, reversed(descendants)))
 
     def __raise_and_activate(self, items):
