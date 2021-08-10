@@ -27,9 +27,12 @@ from AnyQt.QtCore import QObject, QTimer, QSettings, QEvent
 from AnyQt.QtCore import pyqtSignal, pyqtSlot as Slot
 
 from . import LinkEvent
-from ..utils import unique, mapping_get, group_by_all
+from ..utils import unique, mapping_get, group_by_all, apply_all
 from ..registry import OutputSignal, InputSignal
-from .scheme import Scheme, SchemeNode, SchemeLink
+from .scheme import Scheme
+from .node import Node, SchemeNode
+from .link import Link
+from .metanode import MetaNode, InputNode, OutputNode
 from ..utils.graph import traverse_bf, strongly_connected_components
 
 if typing.TYPE_CHECKING:
@@ -42,7 +45,7 @@ log = logging.getLogger(__name__)
 class Signal(
     NamedTuple(
         "Signal", (
-            ("link", SchemeLink),
+            ("link", Link),
             ("value", Any),
             ("id", Any),
             ("index", int),
@@ -53,7 +56,7 @@ class Signal(
 
     Attributes
     ----------
-    link : SchemeLink
+    link : Link
         The link on which the signal is sent
     value : Any
         The signal value
@@ -68,7 +71,7 @@ class Signal(
     --------
     InputSignal.flags, OutputSignal.flags
     """
-    def __new__(cls, link: SchemeLink, value: Any, id: Any = None,
+    def __new__(cls, link: Link, value: Any, id: Any = None,
                 index: int = -1):
         return super().__new__(cls, link, value, id, index)
 
@@ -187,14 +190,17 @@ class SignalManager(QObject):
     #: emitting `finished`.
     started = pyqtSignal()
 
-    def __init__(self, parent=None, *, max_running=None, **kwargs):
-        # type: (Optional[QObject], Optional[int], Any) -> None
+    def __init__(
+            self, parent: Optional[QObject] = None, *,
+            max_running: Optional[int] = None,
+            **kwargs
+    ) -> None:
         super().__init__(parent, **kwargs)
         self.__workflow = None  # type: Optional[Scheme]
         self.__input_queue = []  # type: List[Signal]
 
         # mapping a node to its current outputs
-        self.__node_outputs = {}  # type: Dict[SchemeNode, DefaultDict[OutputSignal, _OutputState]]
+        self.__node_outputs = {}  # type: Dict[Node, DefaultDict[OutputSignal, _OutputState]]
 
         self.__state = SignalManager.Running
         self.__runtime_state = SignalManager.Waiting
@@ -236,10 +242,11 @@ class SignalManager(QObject):
             return
 
         if self.__workflow is not None:
-            for node in self.__workflow.nodes:
+            root = self.__workflow.root()
+            for node in root.all_nodes():
                 node.state_changed.disconnect(self._update)
                 node.removeEventFilter(self)
-            for link in self.__workflow.links:
+            for link in root.all_links():
                 self.__on_link_removed(link)
 
             self.__workflow.node_added.disconnect(self.__on_node_added)
@@ -257,12 +264,12 @@ class SignalManager(QObject):
             workflow.node_removed.connect(self.__on_node_removed)
             workflow.link_added.connect(self.__on_link_added)
             workflow.link_removed.connect(self.__on_link_removed)
-            for node in workflow.nodes:
+            for node in workflow.all_nodes():
                 self.__node_outputs[node] = defaultdict(_OutputState)
                 node.state_changed.connect(self._update)
                 node.installEventFilter(self)
 
-            for link in workflow.links:
+            for link in workflow.all_links():
                 self.__on_link_added(link)
             workflow.installEventFilter(self)
 
@@ -362,7 +369,7 @@ class SignalManager(QObject):
         return self.__runtime_state
 
     def __on_node_removed(self, node):
-        # type: (SchemeNode) -> None
+        # type: (Node) -> None
         # remove all pending input signals for node so we don't get
         # stale references in process_node.
         # NOTE: This does not remove output signals for this node. In
@@ -374,21 +381,28 @@ class SignalManager(QObject):
         del self.__node_outputs[node]
         node.state_changed.disconnect(self._update)
         node.removeEventFilter(self)
+        if isinstance(node, MetaNode):
+            apply_all(self.__on_node_removed, node.nodes())
+            apply_all(self.__on_link_removed, node.links())
 
     def __on_node_added(self, node):
-        # type: (SchemeNode) -> None
+        # type: (Node) -> None
         self.__node_outputs[node] = defaultdict(_OutputState)
+
         # schedule update pass on state change
         node.state_changed.connect(self._update)
         node.installEventFilter(self)
+        if isinstance(node, MetaNode):
+            apply_all(self.__on_node_added, node.all_nodes())
+            apply_all(self.__on_link_added, node.all_links())
 
     def __on_link_added(self, link):
-        # type: (SchemeLink) -> None
+        # type: (Link) -> None
         # push all current source values to the sink
-        link.set_runtime_state(SchemeLink.Empty)
+        link.set_runtime_state(Link.Empty)
         state = self.__node_outputs[link.source_node][link.source_channel]
         link.set_runtime_state_flag(
-            SchemeLink.Invalidated,
+            Link.Invalidated,
             bool(state.flags & _OutputState.Invalidated)
         )
         signals: List[Signal] = [Signal.New(*s)
@@ -404,7 +418,7 @@ class SignalManager(QObject):
         link.enabled_changed.connect(self.__on_link_enabled_changed)
 
     def __on_link_removed(self, link):
-        # type: (SchemeLink) -> None
+        # type: (Link) -> None
         link.enabled_changed.disconnect(self.__on_link_enabled_changed)
 
     def eventFilter(self, recv: QObject, event: QEvent) -> bool:
@@ -425,7 +439,7 @@ class SignalManager(QObject):
             self._update_link(link)
 
     def signals_on_link(self, link):
-        # type: (SchemeLink) -> List[Signal]
+        # type: (Link) -> List[Signal]
         """
         Return :class:`Signal` instances representing the current values
         present on the `link`.
@@ -439,7 +453,7 @@ class SignalManager(QObject):
                 for key, value in items.items()]
 
     def link_contents(self, link):
-        # type: (SchemeLink) -> Dict[Any, Any]
+        # type: (Link) -> Dict[Any, Any]
         """
         Return the contents on the `link`.
         """
@@ -518,17 +532,16 @@ class SignalManager(QObject):
             log.debug("%r clear invalidated flag on channel %r",
                       node.title, channel.name)
             state.flags &= ~_OutputState.Invalidated
-
         links = filter(
             is_enabled,
             scheme.find_links(source_node=node, source_channel=channel)
         )
         signals = []
         for link in links:
-            links_in = scheme.find_links(sink_node=link.sink_node)
+            links_in = scheme.input_links(link.sink_node)
             index = links_in.index(link)
             signals.append(sigtype(link, value, id, index=index))
-            link.set_runtime_state_flag(SchemeLink.Invalidated, False)
+            link.set_runtime_state_flag(Link.Invalidated, False)
 
         self._schedule(signals)
 
@@ -542,7 +555,7 @@ class SignalManager(QObject):
         nodes will not be updated.
 
         All links originating with this node/channel will be marked with
-        `SchemeLink.Invalidated` flag until a new value is sent with `send`.
+        `Link.Invalidated` flag until a new value is sent with `send`.
 
         Parameters
         ----------
@@ -565,7 +578,7 @@ class SignalManager(QObject):
             link.set_runtime_state(link.runtime_state() | link.Invalidated)
 
     def purge_link(self, link):
-        # type: (SchemeLink) -> None
+        # type: (Link) -> None
         """
         Purge the link (send None for all ids currently present)
 
@@ -585,17 +598,17 @@ class SignalManager(QObject):
         self.__input_queue.extend(signals)
 
         for link in {sig.link for sig in signals}:
-            # update the SchemeLink's runtime state flags
+            # update the Link's runtime state flags
             contents = self.link_contents(link)
             if any(value is not None for value in contents.values()):
-                state = SchemeLink.Active
+                state = Link.Active
             else:
-                state = SchemeLink.Empty
-            link.set_runtime_state(state | SchemeLink.Pending)
+                state = Link.Empty
+            link.set_runtime_state(state | Link.Pending)
 
-        for node in {sig.link.sink_node for sig in signals}:  # type: SchemeNode
-            # update the SchemeNodes's runtime state flags
-            node.set_state_flags(SchemeNode.Pending, True)
+        for node in {sig.link.sink_node for sig in signals}:  # type: Node
+            # update the Nodes's runtime state flags
+            node.set_state_flags(Node.Pending, True)
 
         if signals:
             self.updatesPending.emit()
@@ -603,7 +616,7 @@ class SignalManager(QObject):
         self._update()
 
     def _update_link(self, link):
-        # type: (SchemeLink) -> None
+        # type: (Link) -> None
         """
         Schedule update of a single link.
         """
@@ -643,7 +656,7 @@ class SignalManager(QObject):
         return self.__process_next_helper(use_max_active=False)
 
     def process_node(self, node):
-        # type: (SchemeNode) -> None
+        # type: (Node) -> None
         """
         Process pending input signals for `node`.
         """
@@ -658,7 +671,7 @@ class SignalManager(QObject):
                   node.title, len(signals_in))
         # Clear the link's pending flag.
         for link in {sig.link for sig in signals_in}:
-            link.set_runtime_state(link.runtime_state() & ~SchemeLink.Pending)
+            link.set_runtime_state(link.runtime_state() & ~Link.Pending)
 
         def process_dynamic(signals):
             # type: (List[Signal]) -> List[Signal]
@@ -683,16 +696,77 @@ class SignalManager(QObject):
         assert ({sig.link for sig in self.__input_queue}
                 .intersection({sig.link for sig in signals_in}) == set([]))
 
-        self._set_runtime_state(SignalManager.Processing)
-        self.processingStarted.emit()
-        self.processingStarted[SchemeNode].emit(node)
-        try:
-            self.send_to_node(node, signals_in)
-        finally:
-            node.set_state_flags(SchemeNode.Pending, False)
-            self.processingFinished.emit()
-            self.processingFinished[SchemeNode].emit(node)
-            self._set_runtime_state(SignalManager.Waiting)
+        if isinstance(node, SchemeNode):
+            # implementation for concrete node implementations
+            self._set_runtime_state(SignalManager.Processing)
+            self.processingStarted.emit()
+            self.processingStarted[SchemeNode].emit(node)
+            try:
+                self.send_to_node(node, signals_in)
+            finally:
+                node.set_state_flags(SchemeNode.Pending, False)
+                self.processingFinished.emit()
+                self.processingFinished[SchemeNode].emit(node)
+                self._set_runtime_state(SignalManager.Waiting)
+        else:
+            self.__send_to_node(node, signals_in)
+
+    def __send_to_node(self, node: Node, signals: Sequence[Signal]):
+        if isinstance(node, MetaNode):
+            self.__send_to_meta_node(node, signals)
+        elif isinstance(node, OutputNode):
+            self.__send_to_output_node(node, signals)
+        else:
+            assert False
+
+    def __send_to_meta_node(self, node: MetaNode, signals: Sequence[Signal]):
+        # Re-dispatch signals to macro input nodes.
+        workflow = self.__workflow
+        assert workflow is not None
+        input_nodes = {channel: node.node_for_input_channel(channel)
+                       for channel in node.input_channels()}
+        links = {
+            channel: workflow.find_links(
+                source_node=inode, source_channel=inode.output_channels()[0]
+            )
+            for channel, inode in input_nodes.items()
+        }
+        signals_ = []
+        for sig in signals:
+            inode = input_nodes[sig.channel]
+            outputs = self.__node_outputs[inode][inode.source_channel].outputs
+            sigtype = Signal.New if sig.id not in outputs else Signal.Update
+            outputs[sig.id] = sig.value
+            for link in links[sig.channel]:
+                sig = sigtype(
+                    link=link, value=sig.value, id=sig.id,
+                    index=link_index(link)
+                )
+                signals_.append(sig)
+
+        self._schedule(signals_)
+        self.__update_timer.start(0)
+
+    def __send_to_output_node(self, node: OutputNode, signals: Sequence[Signal]):
+        # These are just redispatched
+        workflow = self.__workflow
+        root = node.parent_node()
+        assert workflow is not None and root is not None
+        channel = node.output_channels()[0]
+        assert root.node_for_output_channel(channel) is node
+        links = workflow.find_links(source_node=root, source_channel=channel)
+        signals_ = []
+        for sig in signals:
+            outputs = self.__node_outputs[root][channel].outputs
+            sigtype = Signal.New if sig.id not in outputs else Signal.Update
+            outputs[sig.id] = sig.value
+            for link in links:
+                sig = sigtype(
+                    link=link, value=sig.value, id=sig.id,
+                    index=link_index(link)
+                )
+                signals_.append(sig)
+        self._schedule(signals_)
 
     def compress_signals(self, signals):
         # type: (List[Signal]) -> List[Signal]
@@ -734,14 +808,14 @@ class SignalManager(QObject):
         raise NotImplementedError
 
     def is_pending(self, node):
-        # type: (SchemeNode) -> bool
+        # type: (Node) -> bool
         """
-        Is `node` (class:`SchemeNode`) scheduled for processing (i.e.
+        Is `node` (class:`Node`) scheduled for processing (i.e.
         it has incoming pending signals).
 
         Parameters
         ----------
-        node : SchemeNode
+        node : Node
 
         Returns
         -------
@@ -750,7 +824,7 @@ class SignalManager(QObject):
         return node in [signal.link.sink_node for signal in self.__input_queue]
 
     def pending_nodes(self):
-        # type: () -> List[SchemeNode]
+        # type: () -> List[Node]
         """
         Return a list of pending nodes.
 
@@ -759,12 +833,12 @@ class SignalManager(QObject):
 
         Returns
         -------
-        nodes : List[SchemeNode]
+        nodes : List[Node]
         """
         return list(unique(sig.link.sink_node for sig in self.__input_queue))
 
     def pending_input_signals(self, node):
-        # type: (SchemeNode) -> List[Signal]
+        # type: (Node) -> List[Signal]
         """
         Return a list of pending input signals for node.
         """
@@ -772,7 +846,7 @@ class SignalManager(QObject):
                 if node is signal.link.sink_node]
 
     def remove_pending_signals(self, node):
-        # type: (SchemeNode) -> None
+        # type: (Node) -> None
         """
         Remove pending signals for `node`.
         """
@@ -783,18 +857,18 @@ class SignalManager(QObject):
                 pass
 
     def __nodes(self):
-        # type: () -> Sequence[SchemeNode]
-        return self.__workflow.nodes if self.__workflow else []
+        # type: () -> Sequence[Node]
+        return self.__workflow.all_nodes() if self.__workflow else []
 
     def blocking_nodes(self):
-        # type: () -> List[SchemeNode]
+        # type: () -> List[Node]
         """
         Return a list of nodes in a blocking state.
         """
-        return [node for node in self.__nodes() if self.is_blocking(node)]
+        return [node for node in self.__nodes() if self.__is_blocking(node)]
 
     def invalidated_nodes(self):
-        # type: () -> List[SchemeNode]
+        # type: () -> List[Node]
         """
         Return a list of invalidated nodes.
 
@@ -802,7 +876,7 @@ class SignalManager(QObject):
         """
         return [node for node in self.__nodes()
                 if self.has_invalidated_outputs(node) or
-                self.is_invalidated(node)]
+                self.__is_invalidated(node)]
 
     def active_nodes(self):
         # type: () -> List[SchemeNode]
@@ -811,7 +885,13 @@ class SignalManager(QObject):
 
         .. versionadded:: 0.1.8
         """
-        return [node for node in self.__nodes() if self.is_active(node)]
+        return [node for node in self.__nodes() if self.__is_active(node)]
+
+    def __is_blocking(self, node: Node) -> bool:
+        if isinstance(node, SchemeNode):
+            return self.is_blocking(node)
+        else:
+            return False  # macro/input/output nodes are not blocking
 
     def is_blocking(self, node):
         # type: (SchemeNode) -> bool
@@ -829,6 +909,12 @@ class SignalManager(QObject):
             Use a combination of `is_invalidated` and `is_ready`.
         """
         return False
+
+    def __is_ready(self, node: Node) -> bool:
+        if isinstance(node, SchemeNode):
+            return self.is_ready(node)
+        else:
+            return True  # macro/input/output nodes are always ready
 
     def is_ready(self, node: SchemeNode) -> bool:
         """
@@ -848,7 +934,7 @@ class SignalManager(QObject):
         ----------
         node: SchemeNode
         """
-        return not node.test_state_flags(SchemeNode.NotReady)
+        return not node.test_state_flags(Node.NotReady)
 
     def is_invalidated(self, node: SchemeNode) -> bool:
         """
@@ -862,7 +948,13 @@ class SignalManager(QObject):
         -------
         state: bool
         """
-        return node.test_state_flags(SchemeNode.Invalidated)
+        return node.test_state_flags(Node.Invalidated)
+
+    def __is_invalidated(self, node: Node) -> bool:
+        if isinstance(node, SchemeNode):
+            return self.is_invalidated(node)
+        else:
+            return False  # macro/input/outputs are not invalidated
 
     def has_invalidated_outputs(self, node):
         # type: (SchemeNode) -> bool
@@ -915,8 +1007,14 @@ class SignalManager(QObject):
             return False
         workflow = self.__workflow
         return any(self.has_invalidated_outputs(link.source_node)
-                   for link in workflow.find_links(sink_node=node)
+                   for link in workflow.input_links(node)
                    if link.is_enabled())
+
+    def __is_active(self, node: Node) -> bool:
+        if isinstance(node, SchemeNode):
+            return self.is_active(node)
+        else:
+            return False  # macro/input/ouput nodes do not count as active
 
     def is_active(self, node):
         # type: (SchemeNode) -> bool
@@ -931,10 +1029,10 @@ class SignalManager(QObject):
         -------
         active: bool
         """
-        return bool(node.state() & SchemeNode.Running)
+        return bool(node.state() & Node.Running)
 
     def node_update_front(self):
-        # type: () -> Sequence[SchemeNode]
+        # type: () -> Sequence[Node]
         """
         Return a list of nodes on the update front, i.e. nodes scheduled for
         an update that have no ancestor which is either itself scheduled
@@ -947,15 +1045,16 @@ class SignalManager(QObject):
         if self.__workflow is None:
             return []
         workflow = self.__workflow
+        root = workflow.root()
         expand = partial(expand_node, workflow)
 
-        components = strongly_connected_components(workflow.nodes, expand)
+        components = strongly_connected_components(root.all_nodes(), expand)
         node_scc = {node: scc for scc in components for node in scc}
 
-        def isincycle(node):  # type: (SchemeNode) -> bool
+        def isincycle(node):  # type: (Node) -> bool
             return len(node_scc[node]) > 1
 
-        def dependents(node):  # type: (SchemeNode) -> List[SchemeNode]
+        def dependents(node):  # type: (Node) -> List[Node]
             return dependent_nodes(workflow, node)
 
         # A list of all nodes currently active/executing a non-interruptable
@@ -971,9 +1070,11 @@ class SignalManager(QObject):
             set.union,
             map(dependents, invalidated_nodes | blocking_nodes),
             set([]),
-        )  # type: Set[SchemeNode]
+        )  # type: Set[Node]
 
         pending = self.pending_nodes()
+        if set(pending) - set(root.all_nodes()):
+            warnings.warn("Stale nodes in pending list", RuntimeWarning)
         pending_ = set()
         for n in pending:
             depend = set(dependents(n))
@@ -985,17 +1086,17 @@ class SignalManager(QObject):
                 depend -= set(cc)
             pending_.update(depend)
 
-        def has_invalidated_ancestor(node):  # type: (SchemeNode) -> bool
+        def has_invalidated_ancestor(node):  # type: (Node) -> bool
             return node in invalidated_
 
-        def has_pending_ancestor(node):  # type: (SchemeNode) -> bool
+        def has_pending_ancestor(node):  # type: (Node) -> bool
             return node in pending_
 
         #: nodes that are eligible for update.
         ready = list(filter(
             lambda node: not has_pending_ancestor(node)
                          and not has_invalidated_ancestor(node)
-                         and not self.is_blocking(node),
+                         and not self.__is_blocking(node),
             pending
         ))
         return ready
@@ -1026,8 +1127,9 @@ class SignalManager(QObject):
             self._update()
 
     def __process_next_helper(self, use_max_active=True) -> bool:
-        eligible = [n for n in self.node_update_front() if self.is_ready(n)]
+        eligible = [n for n in self.node_update_front() if self.__is_ready(n)]
         if not eligible:
+            log.debug("No eligible nodes")
             return False
         max_active = self.max_active()
         nactive = len(set(self.active_nodes()) | set(self.blocking_nodes()))
@@ -1045,9 +1147,9 @@ class SignalManager(QObject):
 
         # Select an node that is already running (effectively cancelling
         # already executing tasks that are immediately updatable)
-        selected_node = None  # type: Optional[SchemeNode]
+        selected_node = None  # type: Optional[Node]
         for node in eligible:
-            if self.is_active(node):
+            if self.__is_active(node):
                 selected_node = node
                 break
 
@@ -1119,9 +1221,9 @@ class SignalManager(QObject):
 
 
 def can_enable_dynamic(link, value):
-    # type: (SchemeLink, Any) -> bool
+    # type: (Link, Any) -> bool
     """
-    Can the a dynamic `link` (:class:`SchemeLink`) be enabled for`value`.
+    Can the a dynamic `link` (:class:`Link`) be enabled for`value`.
     """
     return isinstance(value, link.sink_types())
 
@@ -1211,6 +1313,16 @@ def compress_single(signals: List[Signal]) -> List[Signal]:
             # ..., X -> ..., X
             out.append(sig)
     return out
+
+
+def link_index(link: Link) -> int:
+    workflow = link.workflow()
+    if workflow is None:
+        return -1
+    links = workflow.find_links(
+        sink_node=link.sink_node, sink_channel=link.sink_channel
+    )
+    return links.index(link)
 
 
 def expand_node(workflow, node):
