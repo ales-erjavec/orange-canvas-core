@@ -435,6 +435,10 @@ class WidgetDescription(object):
         return widget_from_module_globals(module)
 
 
+class MacroDescription(WidgetDescription):
+    _macro: object
+
+
 class CategoryDescription(object):
     """
     Description of a widget category.

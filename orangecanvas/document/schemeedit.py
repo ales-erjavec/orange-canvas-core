@@ -10,6 +10,7 @@ import logging
 import itertools
 import sys
 import copy
+import uuid
 import warnings
 import dictdiffer
 
@@ -44,9 +45,11 @@ from .utils import (
 )
 from .windowgroupsdialog import SaveWindowGroup
 from ..gui.breadcrumbs import Breadcrumbs
-from ..registry import WidgetDescription, WidgetRegistry
+from ..registry import WidgetDescription, WidgetRegistry, InputSignal, \
+    OutputSignal
 from .suggestions import Suggestions
 from .usagestatistics import UsageStatistics
+from ..registry.description import Multiple, MacroDescription, NodeDescription
 from ..registry.qt import whats_this_helper, QtWidgetRegistry
 from ..gui.quickhelp import QuickHelpTipEvent
 from ..gui.utils import (
@@ -54,7 +57,7 @@ from ..gui.utils import (
 )
 from ..scheme import (
     scheme, signalmanager, Scheme, SchemeNode, MetaNode, Node, Link,
-    Annotation, TextAnnotation, WorkflowEvent,
+    Annotation, TextAnnotation, WorkflowEvent, readwrite,
 )
 from ..scheme.element import Element
 from ..scheme.widgetmanager import WidgetManager
@@ -119,6 +122,14 @@ class UndoStack(QUndoStack):
     def push(self, macro):
         super().push(macro)
         self.__statistics.end_action()
+
+
+def get_default_serializer(workflow):
+    value = workflow.property(".default-data-serializer")
+    if callable(value):
+        return value
+    else:
+        return readwrite.default_serializer_with_pickle_fallback
 
 
 class SchemeEditWidget(QWidget):
@@ -243,6 +254,8 @@ class SchemeEditWidget(QWidget):
         self.__menuBarWidgetMenu.addSeparator()
         self.__menuBarWidgetMenu.addAction(self.__renameAction)
         self.__menuBarWidgetMenu.addAction(self.__removeSelectedAction)
+        self.__menuBarWidgetMenu.addSeparator()
+        self.__menuBarWidgetMenu.addAction(self.__saveMacroToLibraryAction)
         self.__menuBarWidgetMenu.addSeparator()
         self.__menuBarWidgetMenu.addAction(self.__helpAction)
 
@@ -444,6 +457,11 @@ class SchemeEditWidget(QWidget):
             objectName="expand-macro-action",
             enabled=False,
             triggered=self.__expandMacroFromSelection,
+        )
+        self.__saveMacroToLibraryAction = QAction(
+            self.tr("Save Macro to Library"), self,
+            objectName="save-macro-to-library-action",
+            enabled=False, triggered=self.__saveMacroToLibrary
         )
         self.__pasteAction = QAction(
             self.tr("Paste"), self,
@@ -1020,7 +1038,7 @@ class SchemeEditWidget(QWidget):
         self.__undoStack.push(command)
 
     def createNewNode(self, description, title=None, position=None):
-        # type: (WidgetDescription, Optional[str], Optional[Pos]) -> SchemeNode
+        # type: (NodeDescription, Optional[str], Optional[Pos]) -> SchemeNode
         """
         Create a new :class:`.SchemeNode` and add it to the document.
         The new node is constructed using :func:`~SchemeEdit.newNodeHelper`
@@ -1032,7 +1050,7 @@ class SchemeEditWidget(QWidget):
         return node
 
     def newNodeHelper(self, description, title=None, position=None):
-        # type: (WidgetDescription, Optional[str], Optional[Pos]) -> SchemeNode
+        # type: (NodeDescription, Optional[str], Optional[Pos]) -> SchemeNode
         """
         Return a new initialized :class:`.SchemeNode`. If `title`
         and `position` are not supplied they are initialized to sensible
@@ -1043,6 +1061,11 @@ class SchemeEditWidget(QWidget):
 
         if position is None:
             position = self.nextPosition()
+        if isinstance(description, MacroDescription):
+        # if description.qualified_name == "orangecanvas.scheme.MetaNode":
+            macro = copy.deepcopy(description._macro)
+            macro.position = position
+            return macro
 
         return SchemeNode(description, title=title, position=position)
 
@@ -1456,12 +1479,13 @@ class SchemeEditWidget(QWidget):
                 pass
         return None
 
-    def __desc_from_mime_data(self, data: QMimeData) -> Optional[WidgetDescription]:
+    def __desc_from_mime_data(self, data: QMimeData) -> Optional[NodeDescription]:
         MIME_TYPES = [
             "application/vnd.orange-canvas.registry.qualified-name",
             # A back compatible misspelling
             "application/vnv.orange-canvas.registry.qualified-name",
         ]
+        print(data.formats())
         for typ in MIME_TYPES:
             if data.hasFormat(typ):
                 qname_bytes = bytes(data.data(typ).data())
@@ -1932,6 +1956,7 @@ class SchemeEditWidget(QWidget):
         self.__copySelectedAction.setEnabled(bool(nodes))
         self.__createMacroAction.setEnabled(len(nodes) >= 2)
         self.__expandMacroAction.setEnabled(len(nodes) == 1 and isinstance(nodes[0], MetaNode))
+        self.__saveMacroToLibraryAction.setEnabled(len(nodes) == 1 and isinstance(nodes[0], MetaNode))
 
         if len(nodes) > 1:
             self.__openSelectedAction.setText(self.tr("Open All"))
@@ -2154,7 +2179,7 @@ class SchemeEditWidget(QWidget):
             node = nodes[0]
             desc = node.description
 
-            help_url = "help://search?" + urlencode({"id": desc.qualified_name})
+            help_url = "help://search?" + urlencode({"id": desc.id})
             self.__showHelpFor(help_url)
 
     def __showHelpFor(self, help_url):
@@ -2468,6 +2493,43 @@ class SchemeEditWidget(QWidget):
         for link in res.links:
             stack.push(commands.AddLinkCommand(model, link, parent))
         stack.endMacro()
+
+    def __saveMacroToLibrary(self):
+        nodes = self.selectedNodes()
+        if len(nodes) == 1 and isinstance(nodes[0], MetaNode):
+            self.saveMacroToLibrary(nodes[0])
+
+    def saveMacroToLibrary(self, macro: MetaNode):
+        library = self.registry()
+        workflow = self.scheme()
+        data_serializer = get_default_serializer(workflow)
+        data_serializer = lambda _: None
+        try:
+            inode = readwrite.meta_node_to_interm(macro, None, data_serializer)
+        except Exception:
+            return
+        buffer = io.BytesIO()
+        # readwrite.serialize_macro(inode, buffer)
+        content = buffer.getvalue()
+        inputs_ = [n for n in inode.nodes if isinstance(n, readwrite._input_node)]
+        outputs_ = [n for n in inode.nodes if isinstance(n, readwrite._output_node)]
+        inputs = [InputSignal(n.title, n.type, flags=Multiple if n.multiple else 0) for n in inputs_]
+        outputs = [OutputSignal(n.title, n.type, ) for n in inputs_]
+        id = str(uuid.uuid4())
+        qualified_name = "orangecanvas.scheme.MetaNode#{}".format(id)
+        desc = MacroDescription(
+            name=inode.title,
+            id=qualified_name,
+            # id="orangecanvas.node.MetaNode",
+            # qualified_name="orangecanvas.scheme.MetaNode",
+            # qualified_name=qualified_name,
+            # package="orangecanvas.scheme",
+            icon="../icons/Meta Node.svg",
+            inputs=inputs,
+            outputs=outputs,
+        )
+        desc._macro = copy.deepcopy(macro)
+        library.register_node(desc)
 
     def __startControlPointEdit(self, item):
         # type: (items.annotationitem.Annotation) -> None

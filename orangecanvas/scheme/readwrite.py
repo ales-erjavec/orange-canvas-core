@@ -2,9 +2,12 @@
 Scheme save/load routines.
 
 """
+import io
+import itertools
 import numbers
 import base64
 import binascii
+from collections import defaultdict
 from xml.etree.ElementTree import TreeBuilder, Element, ElementTree, parse
 from itertools import chain
 
@@ -18,7 +21,8 @@ from ast import literal_eval
 import logging
 
 from typing import (
-    NamedTuple, Dict, Tuple, List, Union, Any, Optional, AnyStr, IO
+    NamedTuple, Dict, Tuple, List, Union, Any, Optional, AnyStr, IO, Mapping,
+    Callable
 )
 
 from .node import SchemeNode, Node
@@ -800,7 +804,70 @@ def scheme_load(scheme, stream, registry=None, error_handler=None):
     return scheme
 
 
-def _meta_node_to_interm(node: MetaNode, ids) -> _macro_node:
+def default_serializer(
+        node: Node, data_format="literal"
+) -> Optional[Tuple[bytes, str]]:
+    if node.properties:
+        return dumps(node.properties, format=data_format)
+    else:
+        return None
+
+
+def default_serializer_with_pickle_fallback(
+        node: Node, data_format="literal"
+) -> Optional[Tuple[bytes, str]]:
+    if node.properties:
+        try:
+            return default_serializer(node, data_format=data_format)
+        except (UnserializableTypeError, UnserializableValueError):
+            data = pickle.dumps(node.properties, protocol=PICKLE_PROTOCOL)
+            return data, "pickle"
+    return None
+
+
+DataSerializerType = Callable[[Node], Optional[Tuple[bytes, str]]]
+
+
+def default_deserializer(payload, format_):
+    return loads(payload, format_)
+
+
+def default_deserializer_with_pickle_fallback(
+        payload, format_, *, unpickler_class=None
+):
+    if format_ == "pickle":
+        if isinstance(payload, str):
+            payload = payload.encode("ascii")
+        if unpickler_class is None:
+            unpickler_class = pickle.Unpickler
+        unpickler = unpickler_class(io.BytesIO(base64.decodebytes(payload)))
+        return unpickler.load()
+    else:
+        return default_deserializer(payload, format_)
+
+
+DataDeserializerType = Callable[[AnyStr, str], Any]
+
+DataSerializer = Callable[[Any], Tuple[bytes, str]]
+
+
+def meta_node_to_interm(
+        node: MetaNode,
+        ids: Optional[Mapping[Node, str]] = None,
+        data_serializer: Optional[DataSerializer] = None,
+) -> _macro_node:
+    if ids is None:
+        ids = defaultdict(lambda count=itertools.count(): str(next(count)))
+    if data_serializer is None:
+        data_serializer = default_serializer
+    return _meta_node_to_interm(node, ids, data_serializer)
+
+
+def _meta_node_to_interm(
+        node: MetaNode,
+        ids: Mapping[Node, str],
+        data_serializer,
+) -> _macro_node:
     nodes = []
     node_dispatch = {
         SchemeNode: _node_to_interm,
@@ -809,7 +876,7 @@ def _meta_node_to_interm(node: MetaNode, ids) -> _macro_node:
         InputNode: _input_node_to_interm,
     }
     for n in node.nodes():
-        nodes.append(node_dispatch[type(n)](n, ids))
+        nodes.append(node_dispatch[type(n)](n, ids, data_serializer))
     links = [_link_to_interm(link, ids) for link in node.links()]
     annotations = [_annotation_to_interm(annot, ids) for annot in node.annotations()]
 
@@ -824,7 +891,7 @@ def _meta_node_to_interm(node: MetaNode, ids) -> _macro_node:
     )
 
 
-def _node_to_interm(node: SchemeNode, ids) -> _node:
+def _node_to_interm(node: SchemeNode, ids, data_serializer: DataSerializer) -> _node:
     desc = node.description
     input_defs = output_defs = []
     if node.input_channels() != desc.inputs:
@@ -837,7 +904,15 @@ def _node_to_interm(node: SchemeNode, ids) -> _node:
                          for idef in input_defs)
     added_outputs = tuple({"name": odef.name, "type": ttype(odef.type)}
                           for odef in output_defs)
-
+    try:
+        res = data_serializer(node)
+    except Exception:
+        res = None
+    if res is not None:
+        data, format_ = res
+        data = _data(format_, data)
+    else:
+        data = None
     return _node(
         id=ids[node],
         title=node.title,
@@ -847,11 +922,11 @@ def _node_to_interm(node: SchemeNode, ids) -> _node:
         version=desc.version,
         added_inputs=added_inputs,
         added_outputs=added_outputs,
-        data=None,
+        data=data,
     )
 
 
-def _input_node_to_interm(node: InputNode, ids) -> _input_node:
+def _input_node_to_interm(node: InputNode, ids, _) -> _input_node:
     return _input_node(
         id=ids[node],
         title=node.title,
@@ -861,7 +936,7 @@ def _input_node_to_interm(node: InputNode, ids) -> _input_node:
     )
 
 
-def _output_node_to_interm(node: OutputNode, ids) -> _output_node:
+def _output_node_to_interm(node: OutputNode, ids, _) -> _output_node:
     return _output_node(
         id=ids[node],
         title=node.title,
@@ -912,6 +987,11 @@ def scheme_to_interm(scheme, data_format="literal", pickle_fallback=False):
     Return a workflow scheme in its intermediate representation for
     serialization.
     """
+    if pickle_fallback:
+        data_serializer=default_serializer_with_pickle_fallback
+    else:
+        data_serializer=default_serializer
+
     node_ids: Dict[Node, str] = {
         node: str(i + 1) for i, node in enumerate(scheme.all_nodes())
     }
@@ -926,7 +1006,7 @@ def scheme_to_interm(scheme, data_format="literal", pickle_fallback=False):
     # Nodes
     root = scheme.root()
     ids[root] = ""
-    iroot = _meta_node_to_interm(root, ids)
+    iroot = _meta_node_to_interm(root, ids, data_serializer=data_serializer)
     node_properties = {}
     for node in root.all_nodes():
         if node.properties:
@@ -1322,6 +1402,14 @@ def indent(element, level=0, indent="\t"):
                 element.tail = "\n" + indent * (level + (-1 if last else 0))
 
     return indent_(element, level, True)
+
+
+class UnserializableValueError(ValueError):
+    pass
+
+
+class UnserializableTypeError(TypeError):
+    pass
 
 
 def dumps(obj, format="literal", prettyprint=False, pickle_fallback=False):
