@@ -49,7 +49,7 @@ from .description import (
     InputSignal, OutputSignal
 )
 
-from .base import WidgetRegistry, VERSION_HEX
+from .base import NodeRegistry, WidgetRegistry, VERSION_HEX
 from . import discovery
 from .discovery import WidgetDiscovery
 

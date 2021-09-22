@@ -1,6 +1,6 @@
 """
-Widget meta description classes
-===============================
+Node meta description classes
+=============================
 
 """
 
@@ -8,14 +8,13 @@ import sys
 import copy
 import warnings
 
-import typing
 from typing import Union, Optional, List, Tuple, Iterable, Sequence
 
 from orangecanvas.utils import qualified_name
 
 __all__ = [
     "DescriptionError",
-    "WidgetSpecificationError",
+    "NodeSpecificationError",
     "SignalSpecificationError",
     "CategorySpecificationError",
     "Single",
@@ -26,6 +25,7 @@ __all__ = [
     "Dynamic",
     "InputSignal",
     "OutputSignal",
+    "NodeDescription",
     "WidgetDescription",
     "CategoryDescription",
 ]
@@ -37,8 +37,11 @@ class DescriptionError(Exception):
     pass
 
 
-class WidgetSpecificationError(DescriptionError):
+class NodeSpecificationError(DescriptionError):
     pass
+
+
+WidgetSpecificationError = NodeSpecificationError
 
 
 class SignalSpecificationError(DescriptionError):
@@ -72,13 +75,12 @@ Dynamic = 64
 
 # Input/output signal (channel) description
 
-if typing.TYPE_CHECKING:
-    #: A simple single type spec (a fully qualified name or a type instance)
-    TypeSpecSimple = Union[str, type]
-    #: A tuple of simple type specs indicating a union type.
-    TypeSpecUnion = Tuple[TypeSpecSimple, ...]
-    #: Specification of a input/output type
-    TypeSpec = Union[TypeSpecSimple, TypeSpecUnion]
+#: A simple single type spec (a fully qualified name or a type instance)
+TypeSpecSimple = Union[str, type]
+#: A tuple of simple type specs indicating a union type.
+TypeSpecUnion = Tuple[TypeSpecSimple, ...]
+#: Specification of a input/output type
+TypeSpec = Union[TypeSpecSimple, TypeSpecUnion]
 
 
 class InputSignal(object):
@@ -109,7 +111,7 @@ class InputSignal(object):
     """
     name = ""  # type: str
     type = ""  # type: TypeSpec
-    handler = ""  # type: str
+    handler = ""  # type: Optional[str]
     id = None   # type: Optional[str]
     doc = None  # type: Optional[str]
     replaces = None  # type: List[str]
@@ -119,9 +121,14 @@ class InputSignal(object):
     default = None   # type: bool
     explicit = None  # type: bool
 
-    def __init__(self, name, type, handler="", flags=Single + NonDefault,
+    def __init__(self, name, type, handler=None, flags=Single + NonDefault,
                  id=None, doc=None, replaces=()):
         # type: (str, TypeSpec, str, int, Optional[str], Optional[str], Iterable[str]) -> None
+        if handler is not None:
+            warnings.warn(
+                "'handler' parameter is deprecated", DeprecationWarning,
+                stacklevel=2
+            )
         self.name = name
         self.type = type
         self.handler = handler
@@ -282,7 +289,38 @@ def normalize_type(type_):
         return tuple(map(normalize_type_simple, type_))
 
 
-class WidgetDescription(object):
+class NodeDescription:
+    """
+    Node meta description
+    """
+    background = None
+    priority = sys.maxsize
+    inputs: Sequence[InputSignal]
+    outputs: Sequence[OutputSignal]
+    qualified_name: str
+    category: Optional[str] = None
+    package: Optional[str] = None
+    project_name: Optional[str] = None
+    description: str = ""
+    long_description: str = ""
+    keywords: Sequence[str] = ()
+
+    def __init__(
+            self, name: str, id: str, *, inputs=(), outputs=(),
+            category: Optional[str] = None, icon=None,
+            extra={},
+    ) -> None:
+        self.name = name
+        self.id = id
+        self.category = category
+        self.inputs = inputs
+        self.outputs = outputs
+        self.icon = icon
+        self.qualified_name = id
+        self.extra = dict(extra)
+
+
+class WidgetDescription(NodeDescription):
     """
     Description of a widget.
 
@@ -364,6 +402,7 @@ class WidgetDescription(object):
                  priority=sys.maxsize,
                  icon=None, background=None,
                  replaces=None, short_name=None,
+                 extra={}
                  ):
         if inputs is None:
             inputs = []
@@ -375,9 +414,8 @@ class WidgetDescription(object):
             replaces = []
 
         if not qualified_name:
-            # TODO: Should also check that the name is real.
             raise ValueError("'qualified_name' must be supplied.")
-
+        super().__init__(name, id, extra=extra)
         self.name = name
         self.id = id
         self.category = category
@@ -435,8 +473,11 @@ class WidgetDescription(object):
         return widget_from_module_globals(module)
 
 
-class MacroDescription(WidgetDescription):
+class MacroDescription(NodeDescription):
     _macro: object
+    _contents: str
+    package = "orangecanvas.scheme"
+    icon = "../icons/Macro Node.svg"
 
 
 class CategoryDescription(object):
