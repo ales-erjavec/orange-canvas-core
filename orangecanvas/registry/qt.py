@@ -372,22 +372,3 @@ def whats_this_helper(desc, include_more_link=False):
         template.append("<a href='{0}'>more...</a>".format(escape(help_url)))
 
     return "\n".join(template)
-
-
-def run_discovery(entry_points_iter, cached=False):
-    warnings.warn(
-        "run_discovery is deprecated and will be removed.",
-        FutureWarning, stacklevel=2
-    )
-    reg_cache = {}
-    if cached:
-        reg_cache = cache.registry_cache()
-
-    discovery = QtWidgetDiscovery(cached_descriptions=reg_cache)
-    registry = QtWidgetRegistry()
-    discovery.found_category.connect(registry.register_category)
-    discovery.found_widget.connect(registry.register_widget)
-    discovery.run()
-    if cached:
-        cache.save_registry_cache(reg_cache)
-    return registry
