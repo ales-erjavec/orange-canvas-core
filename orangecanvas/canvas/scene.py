@@ -20,7 +20,7 @@ from AnyQt.QtCore import (
 from AnyQt.QtCore import pyqtSignal as Signal
 
 from ..registry import (
-    WidgetRegistry, WidgetDescription, CategoryDescription,
+    WidgetRegistry, NodeDescription, CategoryDescription,
     InputSignal, OutputSignal, NAMED_COLORS
 )
 from .. import scheme
@@ -440,7 +440,7 @@ class CanvasScene(GraphicsScene):
         return self.add_node_item(item)
 
     def new_node_item(self, widget_desc, category_desc=None):
-        # type: (Union[WidgetDescription, Node], Optional[CategoryDescription]) -> NodeItem
+        # type: (Union[NodeDescription, Node], Optional[CategoryDescription]) -> NodeItem
         """
         Construct an new :class:`.NodeItem` from a `WidgetDescription`.
         Optionally also set `CategoryDescription`.

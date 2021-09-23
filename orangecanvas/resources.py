@@ -69,9 +69,9 @@ def search_paths_from_description(desc):
     if desc.package:
         dirname = package_dirname(desc.package)
         paths.append(("", dirname))
-    elif desc.qualified_name:
-        dirname = package_dirname(package(desc.qualified_name))
-        paths.append(("", dirname))
+    # elif desc.qualified_name:
+    #     dirname = package_dirname(package(desc.qualified_name))
+    #     paths.append(("", dirname))
 
     if hasattr(desc, "search_paths"):
         paths.extend(desc.search_paths)

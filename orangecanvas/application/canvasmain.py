@@ -71,7 +71,7 @@ from ..document.quickmenu import QuickMenu
 from ..document.commands import UndoCommand
 from ..document import interactions
 from ..gui.itemmodels import FilterProxyModel
-from ..registry import WidgetRegistry, WidgetDescription, CategoryDescription
+from ..registry import WidgetRegistry, NodeDescription, CategoryDescription
 from ..registry.qt import QtWidgetRegistry
 from ..utils.settings import QSettings_readArray, QSettings_writeArray
 from ..utils.qinvoke import qinvoke
@@ -907,7 +907,7 @@ class CanvasMainWindow(QMainWindow):
         """A widget action in the widget toolbox has been activated.
         """
         widget_desc = action.data()
-        if isinstance(widget_desc, WidgetDescription):
+        if isinstance(widget_desc, NodeDescription):
             scheme_widget = self.current_document()
             if scheme_widget:
                 statistics = scheme_widget.usageStatistics()
@@ -929,9 +929,12 @@ class CanvasMainWindow(QMainWindow):
             popup.setActionRole(QtWidgetRegistry.WIDGET_ACTION_ROLE)
             model = self.__registry_model
             assert model is not None
-            i = index(self.widget_registry.categories(), category,
-                      predicate=lambda name, cat: cat.name == name)
-            if i != -1:
+            # i = index(self.widget_registry.categories(), category,
+            #           predicate=lambda name, cat: cat.name == name)
+            res = findf(enumerate(self.widget_registry.categories()),
+                        predicate=lambda t: t[1].name == category)
+            if res is not None:
+                i, cat = res
                 popup.setModel(model)
                 popup.setRootIndex(model.index(i, 0))
                 popup.adjustSize()

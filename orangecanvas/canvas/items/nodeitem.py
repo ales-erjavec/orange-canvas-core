@@ -5,7 +5,6 @@ Node Item
 
 """
 import math
-import typing
 import string
 import warnings
 
@@ -39,16 +38,14 @@ from ...gui.utils import disconnected
 
 from ...scheme import Node
 from ...scheme.node import UserMessage
-from ...registry import NAMED_COLORS, WidgetDescription, CategoryDescription, \
+from ...registry import (
+    NAMED_COLORS, NodeDescription, WidgetDescription, CategoryDescription,
     InputSignal, OutputSignal
+)
 from ...resources import icon_loader
 from .utils import uniform_linear_layout_trunc
 from ...utils import set_flag
 from ...utils.mathutils import interp1d
-
-if typing.TYPE_CHECKING:
-    from ...registry import WidgetDescription
-    # from . import LinkItem
 
 
 def create_palette(light_color, color):
@@ -1400,7 +1397,7 @@ class NodeItem(QGraphicsWidget):
         return self
 
     @classmethod
-    def from_node_meta(cls, meta_description: WidgetDescription) -> 'NodeItem':
+    def from_node_meta(cls, meta_description: NodeDescription) -> 'NodeItem':
         """
         Create an `NodeItem` instance from a node meta description.
         """
@@ -1408,13 +1405,13 @@ class NodeItem(QGraphicsWidget):
         self.initFrom(meta_description)
         return self
 
-    def initFrom(self, node: typing.Union['Node', WidgetDescription]):
+    def initFrom(self, node: Union[Node, NodeDescription]):
         if isinstance(node, Node):
             title = node.title
             ics, ocs = node.input_channels(), node.output_channels()
             icon = node.icon()
             color = background_color_from_desc(node)
-        elif isinstance(node, WidgetDescription):
+        elif isinstance(node, NodeDescription):
             desc = node
             title = desc.name
             ics, ocs = desc.inputs, desc.outputs
@@ -1970,10 +1967,10 @@ def NodeItem_toolTipHelper(node, links_in=[], links_out=[]):
 
 
 def background_color_from_desc(
-        desc: Union[WidgetDescription, CategoryDescription, Node]
+        desc: Union[NodeDescription, CategoryDescription, Node]
 ) -> QColor:
     if isinstance(desc, Node) and \
-            isinstance(getattr(desc, "description", None), WidgetDescription):
+            isinstance(getattr(desc, "description", None), NodeDescription):
         desc = desc.description
     background = NAMED_COLORS.get(desc.background, desc.background)
     if background is not None:

@@ -21,6 +21,7 @@ from AnyQt.QtCore import (
     QByteArray, QDataStream, QIODevice, QPoint
 )
 from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from orangecanvas.registry.description import NodeDescription
 
 from ..gui.toolbox import ToolBox
 from ..gui.toolgrid import ToolGrid
@@ -218,7 +219,7 @@ class WidgetToolGrid(ToolGrid):
         Start a drag from button
         """
         action = button.defaultAction()
-        desc = action.data()  # Widget Description
+        desc = action.data()  # type: NodeDescription
         icon = action.icon()
         drag_data = QMimeData()
         drag_data.setData(

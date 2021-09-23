@@ -2,6 +2,7 @@
 Orange Canvas Tool Dock widget
 
 """
+import json
 import sys
 import warnings
 from typing import Optional, Any
@@ -299,6 +300,9 @@ class CanvasToolDock(QWidget):
         return self.toggleQuickHelpAction()
 
 
+NodeDescriptionRole = QtWidgetRegistry.WIDGET_DESC_ROLE
+
+
 class QuickCategoryToolbar(ToolGrid):
     """A toolbar with category buttons."""
     def __init__(self, parent=None, buttonSize=QSize(), iconSize=QSize(),
@@ -552,14 +556,25 @@ class CategoryPopupMenu(FramelessWindow):
 
     def __onDragStarted(self, index):
         # type: (QModelIndex) -> None
-        desc = index.data(QtWidgetRegistry.WIDGET_DESC_ROLE)
+        desc = index.data(NodeDescriptionRole)
         icon = index.data(Qt.DecorationRole)
-
         drag_data = QMimeData()
         drag_data.setData(
             "application/vnd.orange-canvas.registry.qualified-name",
-            desc.qualified_name.encode('utf-8')
+            desc.id.encode('utf-8')
         )
+        data = {
+            "type": "bla",
+            "name": desc.name,
+            "id": desc.id,
+            "category": desc.category,
+        }
+        s = json.dumps(data).encode("utf-8")
+        drag_data.setData(
+            "application/vnd.orange-canvas.node-meta", s
+        )
+        model = index.model()
+        mime = model.mimeData([index])
         drag = QDrag(self)
         drag.setPixmap(icon.pixmap(38))
         drag.setMimeData(drag_data)
