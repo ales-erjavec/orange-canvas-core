@@ -4,8 +4,6 @@ Widget Registry
 ===============
 
 """
-import copy
-
 import logging
 import bisect
 
@@ -14,50 +12,52 @@ from operator import attrgetter
 import typing
 from typing import Optional, List, Tuple, Dict, Union
 
-from . description import CategoryDescription, WidgetDescription
+from . description import (
+    CategoryDescription, NodeDescription, WidgetDescription
+)
 from . import description
 
 if typing.TYPE_CHECKING:
-    CategoryWidgetsPair = Tuple[CategoryDescription, List[WidgetDescription]]
+    CategoryNodesPair = Tuple[CategoryDescription, List[NodeDescription]]
 
 log = logging.getLogger(__name__)
 
 # Registry hex version
-VERSION_HEX = 0x000107
+VERSION_HEX = 0x000108
 
 
-class WidgetRegistry(object):
+class NodeRegistry(object):
     """
-    A container for widget and category descriptions.
+    A container for node and category descriptions.
 
     Parameters
     ----------
-    other : :class:`WidgetRegistry`, optional
+    other : Optional[pNodeRegistry]
         If supplied the registry is initialized with the contents of `other`.
 
     See also
     --------
     WidgetDiscovery
     """
-    def __init__(self, other=None):
-        # type: (Optional[WidgetRegistry]) -> None
-        # A list of (category, widgets_list) tuples ordered by priority.
-        self.registry = []  # type: List[CategoryWidgetsPair]
+    def __init__(self, other: Optional['NodeRegistry'] = None, **kwargs):
+        super().__init__(**kwargs)
+        # A list of (category, node_list) tuples ordered by priority.
+        self.registry = []  # type: List[CategoryNodesPair]
 
         # tuples from 'registry' indexed by name
-        self._categories_dict = {}  # type: Dict[str, CategoryWidgetsPair]
+        self._categories_dict = {}  # type: Dict[str, CategoryNodesPair]
 
         # WidgetDescriptions by qualified name
-        self._widgets_dict = {}  # type: Dict[str, WidgetDescription]
+        self._nodes_dict = {}  # type: Dict[str, NodeDescription]
 
         if other is not None:
-            if not isinstance(other, WidgetRegistry):
-                raise TypeError("Expected a 'WidgetRegistry' got %r." \
+            if not isinstance(other, NodeRegistry):
+                raise TypeError("Expected a 'NodeRegistry' got %r." \
                                 % type(other).__name__)
 
             self.registry = list(other.registry)
             self._categories_dict = dict(other._categories_dict)
-            self._widgets_dict = dict(other._widgets_dict)
+            self._nodes_dict = dict(other._nodes_dict)
 
     def categories(self):
         # type: () -> List[CategoryDescription]
@@ -98,7 +98,6 @@ class WidgetRegistry(object):
         return name in self._categories_dict
 
     def widgets(self, category=None):
-        # type: (Union[CategoryDescription, str, None]) -> List[WidgetDescription]
         """
         Return a list of all widgets in the registry. If `category` is
         specified return only widgets which belong to the category.
@@ -107,8 +106,12 @@ class WidgetRegistry(object):
         ----------
         category : :class:`CategoryDescription` or str, optional
             Return only descriptions of widgets belonging to the category.
-
         """
+        items = self.nodes(category)
+        return [item for item in items if isinstance(item, WidgetDescription)]
+
+    def nodes(self, category=None):
+        # type: (Union[CategoryDescription, str, None]) -> List[NodeDescription]
         if category is None:
             categories = self.categories()
         elif isinstance(category, str):
@@ -116,52 +119,60 @@ class WidgetRegistry(object):
         else:
             categories = [category]
 
-        widgets = []
+        items = []
         for cat in categories:
             if isinstance(cat, str):
                 cat = self.category(cat)
             cat_widgets = self._categories_dict[cat.name][1]
-            widgets.extend(sorted(cat_widgets,
+            items.extend(sorted(cat_widgets,
                                   key=attrgetter("priority")))
-        return widgets
+        return items
 
     def widget(self, qualified_name):
-        # type: (str) -> WidgetDescription
+        return self.node(qualified_name)
+
+    def node(self, qualified_name: str) -> NodeDescription:
         """
-        Return a :class:`WidgetDescription` identified by `qualified_name`.
+        Return a :class:`NodeDescription` identified by `qualified_name`.
 
         Raise :class:`KeyError` if the description does not exist.
 
         Parameters
         ----------
         qualified_name : str
-            Widget description qualified name
-
+            Node description qualified name
         """
-        return self._widgets_dict[qualified_name]
+        return self._nodes_dict[qualified_name]
 
     def has_widget(self, qualified_name):
         # type: (str) -> bool
         """
         Return ``True`` if the widget with `qualified_name` exists in
         this registry.
-
         """
-        return qualified_name in self._widgets_dict
+        return qualified_name in self._nodes_dict
+
+    def has_node(self, qualified_name):
+        return qualified_name in self._nodes_dict
 
     def register_widget(self, desc):
         # type: (WidgetDescription) -> None
         """
         Register a :class:`WidgetDescription` instance.
+
+        .. deprecated:: 0.2
+           Use `register_node`
         """
         if not isinstance(desc, description.WidgetDescription):
             raise TypeError("Expected a 'WidgetDescription' got %r." \
                             % type(desc).__name__)
-
         if self.has_widget(desc.qualified_name):
             raise ValueError("%r already exists in the registry." \
                              % desc.qualified_name)
+        self.register_node(desc)
 
+    def register_node(self, desc: NodeDescription) -> None:
+        """Register a :class:`NodeDescription` instance."""
         category = desc.category
         if category is None:
             category = "Unspecified"
@@ -173,10 +184,9 @@ class WidgetRegistry(object):
             cat_desc = description.CategoryDescription(name=category)
             self.register_category(cat_desc)
 
-        self._insert_widget(cat_desc, desc)
+        self._insert_node(cat_desc, desc)
 
-    def register_category(self, desc):
-        # type: (CategoryDescription) -> None
+    def register_category(self, desc: CategoryDescription):
         """
         Register a :class:`CategoryDescription` instance.
 
@@ -208,17 +218,16 @@ class WidgetRegistry(object):
         priorities = [c.priority for c, _ in self.registry]
         insertion_i = bisect.bisect_right(priorities, priority)
 
-        item = (desc, [])  # type: CategoryWidgetsPair
+        item = (desc, [])  # type: CategoryNodesPair
         self.registry.insert(insertion_i, item)
         self._categories_dict[desc.name] = item
 
-    def _insert_widget(self, category, desc):
-        # type: (CategoryDescription, WidgetDescription) -> None
+    def _insert_node(self, category, desc):
+        # type: (CategoryDescription, NodeDescription) -> None
         """
         Insert widget description `desc` into `category`.
         """
-        assert isinstance(category, description.CategoryDescription)
-        _, widgets = self._categories_dict[category.name]
+        _, items = self._categories_dict[category.name]
 
         if desc.background is None:
             desc.background = category.background
@@ -226,7 +235,14 @@ class WidgetRegistry(object):
             desc.category = category.name
 
         priority = desc.priority
-        priorities = [w.priority for w in widgets]
+        priorities = [d.priority for d in items]
         insertion_i = bisect.bisect_right(priorities, priority)
-        widgets.insert(insertion_i, desc)
-        self._widgets_dict[desc.qualified_name] = desc
+        items.insert(insertion_i, desc)
+        self._nodes_dict[desc.qualified_name] = desc
+
+    def _insert_widget(self, category, desc):
+        self._insert_node(category, desc)
+
+
+# Back-compat alias
+WidgetRegistry = NodeRegistry

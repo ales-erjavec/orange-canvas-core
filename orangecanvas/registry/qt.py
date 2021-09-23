@@ -14,11 +14,12 @@ from AnyQt.QtWidgets import QAction
 from AnyQt.QtGui import QStandardItemModel, QStandardItem, QColor, QBrush
 from AnyQt.QtCore import QObject, Qt
 from AnyQt.QtCore import pyqtSignal as Signal
+from orangecanvas.registry.description import NodeDescription
 
 from ..utils import type_str
 from .discovery import WidgetDiscovery
 from .description import WidgetDescription, CategoryDescription
-from .base import WidgetRegistry
+from .base import WidgetRegistry, NodeRegistry
 from ..resources import icon_loader
 
 from . import cache, NAMED_COLORS, DEFAULT_COLOR
@@ -71,52 +72,40 @@ class QtRegistryHandler(QObject, WidgetDiscovery.RegistryHandler):
         self.found_widget.emit(desc)
 
 
-class QtWidgetRegistry(QObject, WidgetRegistry):
+class QtNodeRegistry(NodeRegistry, QObject):
     """
-    A QObject wrapper for `WidgetRegistry`
+    A QObject wrapper for `NodeRegistry`
 
     A QStandardItemModel instance containing the widgets in
-    a tree (of depth 2). The items in a model can be quaries using standard
+    a tree (of depth 2). The items in a model can be queried using standard
     roles (DisplayRole, BackgroundRole, DecorationRole ToolTipRole).
-    They also have QtWidgetRegistry.CATEGORY_DESC_ROLE,
-    QtWidgetRegistry.WIDGET_DESC_ROLE, which store Category/WidgetDescription
-    respectfully. Furthermore QtWidgetRegistry.WIDGET_ACTION_ROLE stores an
-    default QAction which can be used for widget creation action.
-
+    They also have QtNodeRegistry.CATEGORY_DESC_ROLE,
+    QtNodeRegistry.NODE_DESC_ROLE, which store Category/NodeDescription
+    respectfully. Furthermore QtNodeRegistry.NODE_ACTION_ROLE stores an
+    default QAction which can be used for node creation action.
     """
 
+    #: Category Description Role
     CATEGORY_DESC_ROLE = Qt.ItemDataRole(Qt.UserRole + 1)
-    """Category Description Role"""
 
-    WIDGET_DESC_ROLE = Qt.ItemDataRole(Qt.UserRole + 2)
-    """Widget Description Role"""
+    #: Node Description Role
+    NODE_DESC_ROLE = Qt.ItemDataRole(Qt.UserRole + 2)
+    WIDGET_DESC_ROLE = NODE_DESC_ROLE
 
-    WIDGET_ACTION_ROLE = Qt.ItemDataRole(Qt.UserRole + 3)
-    """Widget Action Role"""
+    #: Widget Action Role
+    NODE_ACTION_ROLE = Qt.ItemDataRole(Qt.UserRole + 3)
+    WIDGET_ACTION_ROLE = NODE_ACTION_ROLE
 
+    #: Background color for widget/category in the canvas (different
+    #: from Qt.BackgroundRole)
     BACKGROUND_ROLE = Qt.ItemDataRole(Qt.UserRole + 4)
-    """Background color for widget/category in the canvas
-    (different from Qt.BackgroundRole)
-    """
 
     category_added = Signal(str, CategoryDescription)
-    """signal: category_added(name: str, desc: CategoryDescription)
-    """
+    node_added = Signal(str, str, NodeDescription)
 
-    widget_added = Signal(str, str, WidgetDescription)
-    """signal widget_added(category_name: str, widget_name: str,
-                           desc: WidgetDescription)
-    """
-
-    reset = Signal()
-    """signal: reset()
-    """
-
-    def __init__(self, other_or_parent=None, parent=None):
-        if isinstance(other_or_parent, QObject) and parent is None:
-            parent, other_or_parent = other_or_parent, None
-        QObject.__init__(self, parent)
-        WidgetRegistry.__init__(self, other_or_parent)
+    def __init__(self, other=None, *, parent=None, **kwargs):
+        super().__init__(other, **kwargs)
+        self.setParent(parent)
 
         # Should  the QStandardItemModel be subclassed?
         self.__item_model = QStandardItemModel(self)
@@ -125,9 +114,9 @@ class QtWidgetRegistry(QObject, WidgetRegistry):
             cat_item = self._cat_desc_to_std_item(desc)
             self.__item_model.insertRow(i, cat_item)
 
-            for j, wdesc in enumerate(self.widgets(desc.name)):
-                widget_item = self._widget_desc_to_std_item(wdesc, desc)
-                cat_item.insertRow(j, widget_item)
+            for j, wdesc in enumerate(self.nodes(desc.name)):
+                node_item = self._node_desc_to_std_item(wdesc, desc)
+                cat_item.insertRow(j, node_item)
 
     def model(self):
         # type: () -> QStandardItemModel
@@ -136,31 +125,33 @@ class QtWidgetRegistry(QObject, WidgetRegistry):
         (QStandardItemModel).
 
         .. note:: The model should not be modified outside of the registry.
-
         """
         return self.__item_model
 
     def item_for_widget(self, widget):
         # type: (Union[str, WidgetDescription]) -> QStandardItem
-        """Return the QStandardItem for the widget.
-        """
-        if isinstance(widget, str):
-            widget = self.widget(widget)
-        cat = self.category(widget.category or "Unspecified")
+        return self.item_for_node(widget)
+
+    def item_for_node(self, node: NodeDescription) -> QStandardItem:
+        """Return the QStandardItem for the node."""
+        if isinstance(node, str):
+            node = self.node(node)
+        cat = self.category(node.category or "Unspecified")
         cat_ind = self.categories().index(cat)
         cat_item = self.model().item(cat_ind)
-        widget_ind = self.widgets(cat).index(widget)
+        widget_ind = self.nodes(cat).index(node)
         return cat_item.child(widget_ind)
 
     def action_for_widget(self, widget):
-        # type: (Union[str, WidgetDescription]) -> QAction
+        return self.action_for_node(widget)
+
+    def action_for_node(self, node: NodeDescription) -> QAction:
         """
         Return the QAction instance for the widget (can be a string or
-        a WidgetDescription instance).
-
+        a `NodeDescription` instance).
         """
-        item = self.item_for_widget(widget)
-        return item.data(self.WIDGET_ACTION_ROLE)
+        item = self.item_for_node(node)
+        return item.data(self.NODE_ACTION_ROLE)
 
     def create_action_for_item(self, item):
         # type: (QStandardItem) -> QAction
@@ -175,7 +166,7 @@ class QtWidgetRegistry(QObject, WidgetRegistry):
             icon, name, self, toolTip=tooltip, whatsThis=whatsThis,
             statusTip=name
         )
-        widget_desc = item.data(self.WIDGET_DESC_ROLE)
+        widget_desc = item.data(self.NODE_DESC_ROLE)
         action.setData(widget_desc)
         action.setProperty("item", item)
         return action
@@ -196,26 +187,25 @@ class QtWidgetRegistry(QObject, WidgetRegistry):
 
         self.category_added.emit(desc.name, desc)
 
-    def _insert_widget(self, category, desc):
-        # type: (CategoryDescription, WidgetDescription) -> None
+    def _insert_node(self, category, desc):
+        # type: (CategoryDescription, NodeDescription) -> None
         """
         Override to update the item model and emit the signals.
         """
-        assert isinstance(category, CategoryDescription)
         categories = self.categories()
         cat_i = categories.index(category)
         _, widgets = self._categories_dict[category.name]
         priorities = [w.priority for w in widgets]
         insertion_i = bisect.bisect_right(priorities, desc.priority)
 
-        WidgetRegistry._insert_widget(self, category, desc)
+        super()._insert_node(category, desc)
         desc = self.widget(desc.qualified_name)
         cat_item = self.__item_model.item(cat_i)
-        widget_item = self._widget_desc_to_std_item(desc, category)
+        widget_item = self._node_desc_to_std_item(desc, category)
 
         cat_item.insertRow(insertion_i, widget_item)
 
-        self.widget_added.emit(category.name, desc.name, desc)
+        self.node_added.emit(category.name, desc.name, desc)
 
     def _cat_desc_to_std_item(self, desc):
         # type: (CategoryDescription) -> QStandardItem
@@ -250,10 +240,10 @@ class QtWidgetRegistry(QObject, WidgetRegistry):
         item.setData(desc, self.CATEGORY_DESC_ROLE)
         return item
 
-    def _widget_desc_to_std_item(self, desc, category):
-        # type: (WidgetDescription, CategoryDescription) -> QStandardItem
+    def _node_desc_to_std_item(self, desc, category):
+        # type: (NodeDescription, CategoryDescription) -> QStandardItem
         """
-        Create a QStandardItem for the widget description.
+        Create a QStandardItem for the node description.
         """
         item = QStandardItem(desc.name)
         item.setText(desc.name)
@@ -294,6 +284,9 @@ class QtWidgetRegistry(QObject, WidgetRegistry):
         return item
 
 
+QtWidgetRegistry = QtNodeRegistry
+
+
 TOOLTIP_TEMPLATE = """\
 <html>
 <head>
@@ -308,11 +301,8 @@ TOOLTIP_TEMPLATE = """\
 """
 
 
-def tooltip_helper(desc):
-    # type: (WidgetDescription) -> str
-    """Widget tooltip construction helper.
-
-    """
+def tooltip_helper(desc: NodeDescription) -> str:
+    """Node tooltip construction helper."""
     tooltip = []
     tooltip.append("<b>{name}</b>".format(name=escape(desc.name)))
 
@@ -345,17 +335,17 @@ def tooltip_helper(desc):
 
 
 def whats_this_helper(desc, include_more_link=False):
-    # type: (WidgetDescription, bool) -> str
+    # type: (NodeDescription, bool) -> str
     """
     A `What's this` text construction helper. If `include_more_link` is
     True then the text will include a `more...` link.
 
     """
     title = desc.name
-    help_url = desc.help
+    help_url = desc.extra.get("help_url", "")
 
     if not help_url:
-        help_url = "help://search?" + urlencode({"id": desc.qualified_name})
+        help_url = "help://search?" + urlencode({"id": desc.id})
 
     description = desc.description
     long_description = desc.long_description

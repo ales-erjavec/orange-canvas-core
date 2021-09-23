@@ -45,7 +45,7 @@ DEFAULT_COLOR = "light-yellow"
 
 
 from .description import (
-    WidgetDescription, CategoryDescription,
+    NodeDescription, WidgetDescription, CategoryDescription,
     InputSignal, OutputSignal
 )
 
