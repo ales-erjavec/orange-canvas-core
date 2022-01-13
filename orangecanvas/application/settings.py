@@ -13,12 +13,12 @@ from AnyQt.QtWidgets import (
     QWidget, QMainWindow, QComboBox, QCheckBox, QListView, QTabWidget,
     QToolBar, QAction, QStackedWidget, QVBoxLayout, QHBoxLayout,
     QFormLayout, QSizePolicy, QDialogButtonBox, QLineEdit, QLabel,
-    QStyleFactory, QLayout)
+    QStyleFactory, QLayout, QApplication)
 from AnyQt.QtGui import QStandardItemModel, QStandardItem
 from AnyQt.QtCore import (
     Qt, QEventLoop, QAbstractItemModel, QModelIndex, QSettings,
     Property,
-    Signal)
+    Signal, QEvent)
 
 from .. import config
 from ..utils.settings import SettingChangedEvent
@@ -638,6 +638,13 @@ class StyleConfigWidget(QWidget):
 
         style_cb.currentIndexChanged.connect(self.selectedStyleChanged)
         colors_cb.currentIndexChanged.connect(self.selectedPaletteChanged)
+
+        def update():
+            app = QApplication.instance()
+            QApplication.postEvent(app, QEvent(QEvent.PolishRequest))
+        self.selectedStyleChanged.connect(update)
+        self.selectedPaletteChanged.connect(update)
+
 
     def _style_changed(self):
         self._update_colors_enabled_state()
