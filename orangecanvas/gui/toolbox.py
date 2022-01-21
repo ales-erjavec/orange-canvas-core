@@ -91,6 +91,7 @@ class ToolBoxTabButton(QToolButton):
     def __init__(self, parent=None, **kwargs):
         # type: (Optional[QWidget], Any) -> None
         self.__nativeStyling = False
+        self.__drawDisclosureIndicator = True
         self.position = ToolBoxTabButton.OnlyOneTab
         self.selected = ToolBoxTabButton.NotAdjacent
         font = kwargs.pop("font", None)  # type: Optional[QFont]
@@ -112,7 +113,10 @@ class ToolBoxTabButton(QToolButton):
 
     def paintEvent(self, event):
         if self.__nativeStyling:
-            super().paintEvent(event)
+            opt = QStyleOptionToolButton()
+            self.initStyleOption(opt)
+            painter = QPainter(self)
+            drawToolBoxButton(self.style(), painter, opt, self)
         else:
             self.__paintEventNoStyle()
 
@@ -197,6 +201,19 @@ class ToolBoxTabButton(QToolButton):
         p.restore()
 
         p.save()
+        if self.__drawDisclosureIndicator:
+            disclosurerect = QRect(rect)
+            disclosurerect.setLeft(text_rect.right() - 20)
+            disclosurerect = disclosurerect.adjusted(4, 4, -4, -4)
+            text_rect = text_rect.adjusted(0, 0, -20, 0)
+            opt = QStyleOptionToolButton(opt)
+            opt.rect = disclosurerect
+            if opt.state & QStyle.State_On:
+                pe = QStyle.PE_IndicatorArrowUp
+            else:
+                pe = QStyle.PE_IndicatorArrowDown
+            self.style().drawPrimitive(pe, opt, p, self)
+
         text = fm.elidedText(opt.text, Qt.ElideRight, text_rect.width())
         p.setPen(QPen(palette.color(foregroundrole)))
         p.setFont(opt.font)
@@ -220,6 +237,46 @@ class ToolBoxTabButton(QToolButton):
             icon_rect.moveCenter(icon_area_rect.center())
             opt.icon.paint(p, icon_rect, Qt.AlignCenter, mode, state)
         p.restore()
+
+
+def drawToolBoxButton(style: QStyle, painter: QPainter, option: QStyleOptionToolButton, widget: Optional[QWidget]=None):
+    opt = QStyleOptionToolButton(option)
+    opt.icon = QIcon()
+    opt.text = ""
+    style.drawComplexControl(QStyle.CC_ToolButton, opt, painter, widget)
+    opt.text = option.text
+    iconmode = QIcon.Normal if option.state & QStyle.State_Enabled else QIcon.Disabled
+    if option.state & QStyle.State_Sunken:
+        iconmode = QIcon.Selected
+    iconstate = QIcon.On if option.state & QStyle.State_On else QIcon.Off
+    fw = style.pixelMetric(QStyle.PM_DefaultFrameWidth, option, widget)
+    crect = option.rect.adjusted(fw, fw, -fw, -fw)
+    textrect = QRect(crect)
+    if not option.icon.isNull():
+        size = option.iconSize.boundedTo(crect.size())
+        prect = QRect(crect)
+        prect.setSize(size)
+        option.icon.paint(painter, prect, Qt.AlignCenter, iconmode, iconstate)
+        textrect.setLeft(prect.right() + 1 + 4)
+    fm = option.fontMetrics
+    disclosurerect = QRect(crect)
+    dw = max(crect.height(), 20)
+    disclosurerect.setLeft(crect.right() + 1 - dw)
+    opt = QStyleOptionToolButton(option)
+    opt.rect = disclosurerect
+    if option.state & QStyle.State_On:
+        pe = QStyle.PE_IndicatorArrowUp
+    else:
+        pe = QStyle.PE_IndicatorArrowDown
+    style.drawPrimitive(pe, opt, painter, widget)
+    textrect.setRight(disclosurerect.left() - 2 * fw)
+    text = fm.elidedText(option.text, Qt.ElideRight, textrect.width())
+    style.drawItemText(
+        painter, textrect, Qt.AlignLeft | Qt.AlignVCenter, option.palette,
+        bool(option.state & QStyle.State_Enabled),
+        text,
+        QPalette.ButtonText
+    )
 
 
 class _ToolBoxLayout(QVBoxLayout):
