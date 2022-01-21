@@ -10,7 +10,7 @@ from xml.sax import make_parser, handler, saxutils
 from AnyQt.QtCore import Qt, QSize, QRect, QRectF, QObject
 from AnyQt.QtGui import (
     QIconEngine, QIcon, QPixmap, QPainter, QPixmapCache, QPalette, QColor,
-    QPaintDevice
+    QPaintDevice, QImage
 )
 from AnyQt.QtSvg import QSvgRenderer
 from AnyQt.QtWidgets import QStyleOption, QApplication
@@ -364,6 +364,135 @@ def replace_css_style(
     filter.setContentHandler(writer)
     filter.parse(svgcontents)
     return buffer.getvalue()
+
+
+class SymbolIconEngine(QIconEngine):
+    def __init__(self, base: QIcon):
+        super().__init__()
+        self.__base = QIcon(base)
+        self.__cache_key = next(_cache_id_gen)
+
+    @staticmethod
+    def __paletteFromPaintDevice(dev: QPaintDevice) -> Optional[QPalette]:
+        if isinstance(dev, QObject):
+            palette_ = dev.property("palette")
+            if isinstance(palette_, QPalette):
+                return palette_
+        return None
+
+    @staticmethod
+    def __paletteFromStyleObject(obj: QObject) -> Optional[QPalette]:
+        palette = obj.property("palette")
+        if isinstance(palette, QPalette):
+            return palette
+        else:
+            return None
+
+    def paint(self, painter, rect, mode, state):
+        # type: (QPainter, QRect, QIcon.Mode, QIcon.State) -> None
+        if not self.__base.isNull():
+            palette = self.__paletteFromPaintDevice(painter.device())
+            if palette is None:
+                palette = self._palette()
+            size = rect.size()
+            dpr = painter.device().devicePixelRatioF()
+            size = size * dpr
+            pm = self.__renderStyledPixmap(size, mode, state, palette)
+            painter.drawPixmap(rect, pm)
+
+    def _palette(self) -> QPalette:
+        # if self.__palette is not None:
+        #     return self.__palette
+        # elif self.__style_object is not None:
+        #     palette = self.__paletteFromStyleObject(self.__style_object)
+        #     if palette is not None:
+        #         return palette
+        #
+        # if self.__paletteOverride is not None:
+        #     return QPalette(self.__paletteOverride)
+        return QApplication.palette()
+
+    def pixmap(self, size, mode, state):
+        # type: (QSize, QIcon.Mode, QIcon.State) -> QPixmap
+        return self.__renderStyledPixmap(size, mode, state, self._palette())
+
+    def __renderStyledPixmap(
+            self, size: QSize, mode: QIcon.Mode, state: QIcon.State,
+            palette: QPalette
+    ) -> QPixmap:
+        active = mode in (QIcon.Active, QIcon.Selected)
+        disabled = mode == QIcon.Disabled
+        cg = QPalette.Disabled if disabled else QPalette.Active
+        role = QPalette.Foreground if active else QPalette.HighlightedText
+        currentcolor = palette.color(cg, role)
+        namespace = "{}:{}/{}/".format(
+            __name__, __class__.__name__, self.__cache_key)
+        cachekey = "{}x{}{}".format(
+            size.width(), size.height(), currentcolor.name()
+        )
+        style_key = "{}-{}-{}".format(hex(palette.cacheKey()), cg, role)
+
+        pmcachekey = namespace + cachekey + str(style_key)
+        pm = QPixmapCache.find(pmcachekey)
+        if pm is None or pm.isNull():
+            src = self.__base.pixmap(size, mode, state)
+            src = src.toImage().convertToFormat(QImage.Format_ARGB32_Premultiplied)
+            dest = QImage(src)
+            color = palette.color(QPalette.Text)
+            # color.setAlphaF(0.5)
+            p = QPainter(dest)
+            p.setCompositionMode(QPainter.CompositionMode_HardLight)
+            p.fillRect(0, 0, dest.width(), dest.height(), color)
+            if src.hasAlphaChannel():
+                p.setCompositionMode(QPainter.CompositionMode_DestinationIn)
+                p.drawImage(0, 0, src)
+            p.end()
+            if color.lightness() > 127:
+                dest = src
+                dest.invertPixels()
+            else:
+                dest = src
+            # dest = src
+            # dest.invertPixels()
+            pm = QPixmap.fromImage(dest)
+            QPixmapCache.insert(pmcachekey, pm)
+            #
+            # pixmap = QPixmap(size)
+            # pixmap.fill(Qt.transparent)
+            # p = QPainter(pixmap)
+            #
+            # p.setRenderHint(QPainter.Antialiasing, True)
+            # p.setBrush(QBrush(self.__gradient))
+            # p.setPen(Qt.NoPen)
+            # icon_size = QSize(5 * size.width() // 8, 5 * size.height() // 8)
+            # icon_rect = QRect(QPoint(0, 0), icon_size)
+            # ellipse_rect = QRect(QPoint(0, 0), size)
+            # p.drawEllipse(ellipse_rect)
+            # icon_rect.moveCenter(ellipse_rect.center())
+            # palette = styles.breeze_light()
+            # # Special case for StyledSvgIconEngine. This is drawn on a
+            # # light-ish color background and should not render with a dark palette
+            # # (this is bad, and I feel bad).
+            # with StyledSvgIconEngine.setOverridePalette(palette):
+            #     self.__base.paint(p, icon_rect, Qt.AlignCenter)
+            # p.end()
+            # return pixmap
+            # pm = QPixmap(size)
+            # pm.fill(Qt.transparent)
+            # painter = QPainter(pm)
+            # renderer.render(painter, QRectF(0, 0, size.width(), size.height()))
+            # painter.end()
+            QPixmapCache.insert(pmcachekey, pm)
+
+        style = QApplication.style()
+        if style is not None:
+            opt = QStyleOption()
+            opt.palette = palette
+            pm = style.generatedIconPixmap(mode, pm, opt)
+        return pm
+
+    def clone(self) -> 'QIconEngine':
+        return SymbolIconEngine(self.__base)
 
 
 def svg_insert_color_defs(
