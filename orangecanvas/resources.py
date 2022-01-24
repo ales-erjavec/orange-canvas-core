@@ -200,6 +200,20 @@ class icon_loader(resource_loader):
 
         cache_key = tuple(icons)
         icon = QIcon()
+        if cache_key in self._icon_cache:
+            return QIcon(self._icon_cache[cache_key])
+
+        if len(icons) == 1 and icons[0].lower().endswith(".svg"):
+            if self.package is not None:
+                try:
+                    contents = pkgutil.get_data(self.package, name)
+                except FileNotFoundError:
+                    pass
+                else:
+                    icon = QIcon(StyledSvgIconEngine(contents))
+                    self._icon_cache[cache_key] = icon
+                    return icon
+
         if False and len(icons) == 1 and icons[0].lower().endswith(".svg") and self.package is not None:
             contents = pkgutil.get_data(self.package, name)
             icon = QIcon(SymbolIconEngine(contents))
