@@ -279,6 +279,35 @@ def drawToolBoxButton(style: QStyle, painter: QPainter, option: QStyleOptionTool
     )
 
 
+def drawToolBoxTabButton(style: QStyle, painter: QPainter, option, widget: ToolBoxTabButton):
+    from AnyQt.QtWidgets import QStyleOptionToolBox
+    option = QStyleOptionToolBox()
+    option.initFrom(widget)
+    option.text = widget.text()
+    option.icon = widget.icon()
+    if widget.isDown():
+        option.state |= QStyle.State_Sunken
+    if widget.isChecked():
+        option.state |= QStyle.State_Selected
+    if widget.position == ToolBoxTabButton.OnlyOneTab:
+        option.position = QStyleOptionToolBox.OnlyOneTab
+    elif widget.position == ToolBoxTabButton.Beginning:
+        option.position = QStyleOptionToolBox.Beginning
+    elif widget.position == ToolBoxTabButton.Middle:
+        option.position = QStyleOptionToolBox.Middle
+    elif widget.position == ToolBoxTabButton.End:
+        option.position = QStyleOptionToolBox.End
+
+    if widget.selected == ToolBoxTabButton.PreviousIsSelected:
+        option.selectedPosition = QStyleOptionToolBox.PreviousIsSelected
+    elif widget.selected == ToolBoxTabButton.NextIsSelected:
+        option.selectedPosition = QStyleOptionToolBox.NextIsSelected
+    elif widget.selected == ToolBoxTabButton.NotAdjacent:
+        option.selectedPosition = QStyleOptionToolBox.NotAdjacent
+    # print(option.palette.color(QPalette.WindowText).name())
+    style.drawControl(QStyle.CE_ToolBoxTab, option, painter, widget.parent())
+
+
 class _ToolBoxLayout(QVBoxLayout):
     def __init__(self, *args, **kwargs):
         # type: (Any, Any) -> None
