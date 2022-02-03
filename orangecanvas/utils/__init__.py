@@ -1,13 +1,15 @@
 import enum
 import operator
 import types
-from functools import reduce
+from functools import reduce, partial
 
 import typing
 from typing import (
     Iterable, Set, Any, Optional, Union, Tuple, Callable, Mapping, List, Dict,
-    SupportsInt
+    SupportsInt, Type
 )
+
+from AnyQt.QtCore import QCoreApplication, QObject, QTranslator
 
 from .qtcompat import toPyObject
 
@@ -29,6 +31,8 @@ __all__ = [
     "findf",
     "set_flag",
     "UNUSED",
+    "translate",
+    "fix_tr"
 ]
 
 if typing.TYPE_CHECKING:
@@ -40,6 +44,7 @@ if typing.TYPE_CHECKING:
     V = typing.TypeVar("V")
     KV = Tuple[K, V]
     F = typing.TypeVar("F", bound=int)
+    Q = typing.TypeVar("Q", bound=QObject)
 
 
 def dotted_getattr(obj, name):
@@ -289,3 +294,82 @@ def UNUSED(*_unused_args) -> None:
     ...     UNUSED(bar, baz)
     ...     return True
     """
+
+
+translate = QCoreApplication.translate
+
+
+def ctr(class_,):
+    return partial(translate, class_.__name__)
+
+
+class _TR_FUNC(typing.Protocol):
+    def __call__(
+            self, sourceText: str, disambiguation=None, n=-1
+    ) -> str: ...
+
+
+def make_static_tr(
+        context: str
+) -> _TR_FUNC:
+    def tr(self, sourceText: str, disambiguation=None, n=-1):
+        return translate(context, sourceText, disambiguation, n)
+    return tr
+
+
+def fix_tr(class_: Type['Q']) -> Type['Q']:
+    """
+    Decorate the `class_` (QObject) with a fixed `tr`` method that resolves
+    agains the `class.__name__` context. See
+    https://www.riverbankcomputing.com/static/Docs/PyQt6/i18n.html#differences-between-pyqt6-and-qt
+
+    Example
+    -------
+    >>> @fix_tr
+    ... class A(QObject)
+    ...    def hello(self):
+    ...        return self.tr("Hello")
+    >>> class B(A):
+    ...     pass
+    ...
+    ... a = A()
+    ... a.hello()
+    ... b = B()
+    ... b.hello()
+    """
+    def tr(
+            self, sourceText: str, disambiguation: Optional[str] = None,
+            n: int = -1
+    ) -> str:
+        # app = QCoreApplication.instance()
+        # translatros = app.translators()
+        for clss_ in class_.mro():
+            # result = app.tanslatedText(clss_.__name__, sourceText, disambiguation, n)
+            # if result is not None:
+            #     break
+            result = QCoreApplication.translate(clss_.__name__, sourceText, disambiguation, n)
+            if result != sourceText:
+                return result
+
+        return QCoreApplication.translate(
+            class_.__name__, sourceText, disambiguation, n
+        )
+
+    class_.tr = tr
+    return class_
+
+
+def translateText(translators: typing.Sequence[QTranslator], context: str, sourceText: str, disambiguation=None, n=-1):
+    def replacePercentN(string: str, n: int):
+        string = string.replace("%n", str(n))
+        return  string.replace("%Ln", "{:n}".format(n))
+    if not sourceText:
+        return sourceText
+    result = None
+    for trs in translators:
+        result = trs.translate(context, sourceText, disambiguation, n)
+        if result is not None:
+            break
+    if result is None:
+        result = sourceText
+    return replacePercentN(result, n)
