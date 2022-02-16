@@ -116,6 +116,16 @@ class UndoStack(QUndoStack):
         self.__statistics.end_action()
 
 
+class OpenAnchors(enum.Enum):
+    """Interactions with individual anchors"""
+    #: Channel anchors never separate
+    Never = "Never"
+    #: Channel anchors separate on hover
+    Always = "Always"
+    #: Channel anchors separate on hover on Shift key
+    OnShift = "OnShift"
+
+
 class SchemeEditWidget(QWidget):
     """
     A widget for editing a :class:`~.scheme.Scheme` instance.
@@ -149,14 +159,7 @@ class SchemeEditWidget(QWidget):
      SpaceKey,
      AnyKey) = [0, 1, 2, 4, 8]
 
-    class OpenAnchors(enum.Enum):
-        """Interactions with individual anchors"""
-        #: Channel anchors never separate
-        Never = "Never"
-        #: Channel anchors separate on hover
-        Always = "Always"
-        #: Channel anchors separate on hover on Shift key
-        OnShift = "OnShift"
+    OpenAnchors = OpenAnchors
 
     __tr = make_static_tr(__qualname__)
 
