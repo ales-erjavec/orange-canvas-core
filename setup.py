@@ -1,5 +1,9 @@
 #! /usr/bin/env python
+import glob
+import subprocess
+
 from setuptools import setup, find_packages
+from distutils.command.build import build
 
 NAME = "orange-canvas-core"
 VERSION = "0.1.25.dev0"
@@ -59,6 +63,23 @@ PROJECT_URLS = {
 
 PYTHON_REQUIRES = ">=3.6"
 
+
+class update_translations(build):
+    def run(self):
+        subprocess.run([
+            "pylupdate5",
+            *glob.glob("orangecanvas/application/*.py"),
+            *glob.glob("orangecanvas/document/*.py"),
+            *glob.glob("orangecanvas/canvas/*.py"),
+            *glob.glob("orangecanvas/canvas/items/*.py"),
+            *glob.glob("orangecanvas/preview/*.py"),
+            *glob.glob("orangecanvas/scheme/widgetmanager.py"),
+
+            "-tr-function", "__tr",
+            "-ts", "orangecanvas/i18n/orangecanvas_empty.ts"
+        ])
+
+
 if __name__ == "__main__":
     setup(
         name=NAME,
@@ -76,4 +97,5 @@ if __name__ == "__main__":
         extras_require=EXTRAS_REQUIRE,
         project_urls=PROJECT_URLS,
         python_requires=PYTHON_REQUIRES,
+        cmdclass={"update_translations": update_translations}
     )

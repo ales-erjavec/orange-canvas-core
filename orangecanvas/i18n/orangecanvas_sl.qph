@@ -1,0 +1,103 @@
+<!DOCTYPE QPH>
+<QPH language="sl">
+<phrase>
+    <source>Workflow</source>
+    <target>Potek dela</target>
+</phrase>
+<phrase>
+    <source>Welcome screen</source>
+    <target>Pozdravno okno</target>
+</phrase>
+<phrase>
+    <source>Tool box</source>
+    <target>Orodnik</target>
+</phrase>
+<phrase>
+    <source>Logging</source>
+    <target>Beleženje</target>
+</phrase>
+<phrase>
+    <source>Add-ons</source>
+    <target>Dodatki</target>
+</phrase>
+<phrase>
+    <source>Version</source>
+    <target>Verzija</target>
+</phrase>
+<phrase>
+    <source>Name</source>
+    <target>Ime</target>
+</phrase>
+<phrase>
+    <source>Action</source>
+    <target>Akcija</target>
+</phrase>
+<phrase>
+    <source>Title</source>
+    <target>Naslov</target>
+</phrase>
+<phrase>
+    <source>Description</source>
+    <target>Opis</target>
+</phrase>
+<phrase>
+    <source>Filter...</source>
+    <target>Filtriraj...</target>
+</phrase>
+<phrase>
+    <source>Recent</source>
+    <target>Nedavno</target>
+</phrase>
+<phrase>
+    <source>Examples</source>
+    <target>Primeri</target>
+</phrase>
+<phrase>
+    <source>Preferences</source>
+    <target>Možnosti</target>
+</phrase>
+<phrase>
+    <source>&amp;Edit</source>
+    <target>&amp;Uredi</target>
+</phrase>
+<phrase>
+    <source>Widget</source>
+    <target>Gradnik</target>
+</phrase>
+<phrase>
+    <source>Link</source>
+    <target>Povezava</target>
+</phrase>
+<phrase>
+    <source>Remove</source>
+    <target>Odstrani</target>
+</phrase>
+<phrase>
+    <source>Rename</source>
+    <target>Preimenuj</target>
+</phrase>
+<phrase>
+    <source>Help</source>
+    <target>Pomoč</target>
+</phrase>
+<phrase>
+    <source>Copy</source>
+    <target>Kopiraj</target>
+</phrase>
+<phrase>
+    <source>Paste</source>
+    <target>Prilepi</target>
+</phrase>
+<phrase>
+    <source>Preview</source>
+    <target>Predogled</target>
+</phrase>
+<phrase>
+    <source>Help</source>
+    <target>Pomoč</target>
+</phrase>
+<phrase>
+    <source>Show Help</source>
+    <target>Prikaži pomoč</target>
+</phrase>
+</QPH>
