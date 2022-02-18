@@ -15,7 +15,7 @@ from urllib.request import getproxies
 from contextlib import ExitStack, closing
 
 from AnyQt.QtGui import QFont, QColor, QPalette
-from AnyQt.QtCore import Qt, QSettings, QTimer, QUrl, QDir
+from AnyQt.QtCore import Qt, QSettings, QTimer, QUrl, QDir, QTranslator, QLocale
 
 from .utils.after_exit import run_after_exit
 from .styles import style_sheet, breeze_dark as _breeze_dark
@@ -177,6 +177,7 @@ class Main:
         self.application = CanvasApplication(sys.argv[:1] + self.arguments)
         # Update the arguments
         self.arguments = self.application.arguments()[1:]
+        # self.locale = QLocale.system()
         fix_set_proxy_env()
 
     def tear_down_application(self):
@@ -200,6 +201,7 @@ class Main:
             self.setup_sys_redirections()
             stack.callback(self.tear_down_sys_redirections)
             self.setup_logging()
+            self.setup_translations()
             stack.callback(self.tear_down_logging)
             paths = self.arguments
             log.debug("Loading paths from argv: %s", " ,".join(paths))
@@ -283,6 +285,25 @@ class Main:
 
     def tear_down_logging(self):
         pass
+
+    def setup_translations(self) -> None:
+        """
+        Setup application translations.
+        """
+        app = self.application
+        translations = "orangecanvas"
+        locale = QLocale.system()
+        tr = QTranslator(app)
+        tr_dir = os.path.join(os.path.dirname(__file__), "i18n")
+        if tr.load(locale, translations, "_", tr_dir,):
+            app.installTranslator(tr)
+            return
+        # try unix like messages dir structure
+        localedir = os.path.join(sys.prefix, "share", "locale")
+        for uilang in locale.uiLanguages():
+            tr_dir = os.path.join(localedir, uilang, "LC_MESSAGES")
+            if tr.load(locale, translations, "_", tr_dir):
+                break
 
     def create_main_window(self) -> CanvasMainWindow:
         """Create the (initial) main window."""
