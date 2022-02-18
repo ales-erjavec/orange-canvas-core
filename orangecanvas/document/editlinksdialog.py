@@ -31,7 +31,7 @@ from ..scheme import compatible_channels
 from ..registry import InputSignal, OutputSignal
 
 from ..resources import icon_loader
-from ..utils import type_str
+from ..utils import type_str, make_static_tr
 
 if typing.TYPE_CHECKING:
     from ..scheme import SchemeNode
@@ -50,6 +50,8 @@ class EditLinksDialog(QDialog):
     ...     new_links = dlg.links()
     ...
     """
+    __tr = make_static_tr(__qualname__)
+
     def __init__(self, parent=None, **kwargs):
         # type: (Optional[QWidget], Any) -> None
         super().__init__(parent, **kwargs)
@@ -77,7 +79,7 @@ class EditLinksDialog(QDialog):
                                    Qt.Horizontal)
 
         clear_button = buttons.button(QDialogButtonBox.Reset)
-        clear_button.setText(self.tr("Clear All"))
+        clear_button.setText(self.__tr("Clear All"))
 
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)

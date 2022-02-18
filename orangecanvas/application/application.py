@@ -10,8 +10,8 @@ from typing import Optional, List, Sequence
 import AnyQt
 from AnyQt.QtWidgets import QApplication
 from AnyQt.QtCore import (
-    Qt, QUrl, QEvent, QSettings, QLibraryInfo, pyqtSignal as Signal,
-    QT_VERSION_INFO
+    Qt, QUrl, QEvent, QSettings, QLibraryInfo, QTranslator, QLocale,
+    QT_VERSION_INFO, pyqtSignal as Signal,
 )
 
 from orangecanvas.utils.after_exit import run_after_exit
@@ -126,6 +126,22 @@ class CanvasApplication(QApplication):
                 sh.setShowShortcutsInContextMenus(True)
         if QT_VERSION_INFO < (5, 15):  # QTBUG-61707
             macos_set_nswindow_tabbing(False)
+
+        if ns.tr is not None:
+            tr = QTranslator(self)
+            self.__tr = tr
+            st = tr.load("tr", ".", ".", )
+            print(QLocale.system().uiLanguages())
+            appname = self.applicationName()
+            print(appname)
+            st = tr.load(QLocale.system(), appname, ".", ".", ".qm")
+            print(st)
+            if st:
+                self.installTranslator(tr)
+            print(tr, tr.language(), tr.filePath())
+            print(tr.translate("CanvasMainWindow", "Show Help"))
+            print(self.translate("CanvasMainWindow", "Show Help"))
+
         self.configureStyle()
 
     def event(self, event):
@@ -156,6 +172,7 @@ class CanvasApplication(QApplication):
         parser.add_argument("-colortheme", type=str, default=None)
         parser.add_argument("-enable-high-dpi-scaling", type=bool, default=True)
         parser.add_argument("-use-high-dpi-pixmaps", type=bool, default=True)
+        parser.add_argument("-tr", type=str, default=None)
         return parser
 
     @staticmethod
@@ -193,6 +210,22 @@ class CanvasApplication(QApplication):
         if theme and theme in styles.colorthemes:
             palette = styles.colorthemes[theme]()
             QApplication.setPalette(palette)
+
+    __translators = []
+
+    @classmethod
+    def installTranslator(cls, messageFile: 'QTranslator') -> bool:
+        CanvasApplication.__translators.append(messageFile)
+        super().installTranslator(messageFile)
+
+    @classmethod
+    def removeTranslator(cls, messageFile: 'QTranslator') -> bool:
+        CanvasApplication.__translators.remove(messageFile)
+        super().removeTranslator(messageFile)
+
+    @classmethod
+    def translators(cls) -> Sequence[QTranslator]:
+        return list(cls.__translators)
 
 
 __restart_command: Optional[List[str]] = None

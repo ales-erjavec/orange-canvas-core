@@ -18,6 +18,7 @@ from AnyQt.QtCore import pyqtSignal as Signal
 
 from ..canvas.items.utils import radial_gradient
 from ..registry import NAMED_COLORS
+from ..utils import make_static_tr
 
 
 def decorate_welcome_icon(icon, background_color):
@@ -87,6 +88,8 @@ class WelcomeDialog(QDialog):
     """
     triggered = Signal(QAction)
 
+    __tr = make_static_tr(__qualname__)
+
     def __init__(self, *args, **kwargs):
         showAtStartup = kwargs.pop("showAtStartup", True)
         feedbackUrl = kwargs.pop("feedbackUrl", "")
@@ -124,7 +127,7 @@ class WelcomeDialog(QDialog):
                                  QSizePolicy.Maximum)
 
         self.__showAtStartupCheck = QCheckBox(
-            self.tr("Show at startup"), bottom_bar, checked=False
+            self.__tr("Show at startup"), bottom_bar, checked=False
         )
         self.__feedbackLabel = QLabel(
             textInteractionFlags=Qt.TextBrowserInteraction,
@@ -166,7 +169,7 @@ class WelcomeDialog(QDialog):
         """
         self.__feedbackUrl = url
         if url:
-            text = self.tr("Help us improve!")
+            text = self.__tr("Help us improve!")
             self.__feedbackLabel.setText(
                 '<a href="{url}">{text}</a>'.format(url=url, text=escape(text))
             )

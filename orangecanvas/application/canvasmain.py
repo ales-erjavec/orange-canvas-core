@@ -77,7 +77,8 @@ from ..utils.settings import QSettings_readArray, QSettings_writeArray
 from ..utils.qinvoke import qinvoke
 from ..utils.pickle import Pickler, Unpickler, glob_scratch_swps, swp_name, \
     canvas_scratch_name_memo, register_loaded_swp
-from ..utils import unique, group_by_all, set_flag, findf
+from ..utils import unique, group_by_all, set_flag, findf, translate, \
+    make_static_tr
 from ..utils.asyncutils import get_event_loop
 from ..utils.qobjref import qobjref
 
@@ -152,6 +153,8 @@ class DockWidget(QDockWidget):
 
 class CanvasMainWindow(QMainWindow):
     SETTINGS_VERSION = 2
+
+    __tr = make_static_tr(__qualname__)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -289,7 +292,7 @@ class CanvasMainWindow(QMainWindow):
             "or open the <a href='action:welcome-action'>welcome screen</a>."
         )
         self.dock_help_action = canvas_tool_dock.toggleQuickHelpAction()
-        self.dock_help_action.setText(self.tr("Show Help"))
+        self.dock_help_action.setText(self.__tr("Show Help"))
         self.dock_help_action.setIcon(canvas_icons("Info.svg"))
 
         self.canvas_tool_dock = canvas_tool_dock
@@ -360,7 +363,7 @@ class CanvasMainWindow(QMainWindow):
         )
 
         self.output_dock = DockWidget(
-            self.tr("Log"), self, objectName="output-dock",
+            self.__tr("Log"), self, objectName="output-dock",
             allowedAreas=Qt.BottomDockWidgetArea,
             visible=self.show_output_action.isChecked(),
         )
@@ -371,7 +374,7 @@ class CanvasMainWindow(QMainWindow):
         self.addDockWidget(Qt.BottomDockWidgetArea, self.output_dock)
 
         self.help_dock = DockWidget(
-            self.tr("Help"), self, objectName="help-dock",
+            self.__tr("Help"), self, objectName="help-dock",
             allowedAreas=Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea,
             visible=False
         )
@@ -397,63 +400,62 @@ class CanvasMainWindow(QMainWindow):
         """Initialize main window actions.
         """
         self.new_action = QAction(
-            self.tr("New"), self,
+            self.__tr("New"), self,
             objectName="action-new",
-            toolTip=self.tr("Open a new workflow."),
+            toolTip=self.__tr("Open a new workflow."),
             triggered=self.new_workflow_window,
             shortcut=QKeySequence.New,
             icon=canvas_icons("New.svg")
         )
         self.open_action = QAction(
-            self.tr("Open"), self,
+            self.__tr("Open"), self,
             objectName="action-open",
-            toolTip=self.tr("Open a workflow."),
+            toolTip=self.__tr("Open a workflow."),
             triggered=self.open_scheme,
             shortcut=QKeySequence.Open,
             icon=canvas_icons("Open.svg")
         )
         self.open_and_freeze_action = QAction(
-            self.tr("Open and Freeze"), self,
+            self.__tr("Open and Freeze"), self,
             objectName="action-open-and-freeze",
-            toolTip=self.tr("Open a new workflow and freeze signal "
-                            "propagation."),
+            toolTip=self.__tr("Open a new workflow and freeze signal propagation."),
             triggered=self.open_and_freeze_scheme
         )
         self.open_and_freeze_action.setShortcut(
             QKeySequence("Ctrl+Alt+O")
         )
         self.close_window_action = QAction(
-            self.tr("Close Window"), self,
+            self.__tr("Close Window"), self,
             objectName="action-close-window",
-            toolTip=self.tr("Close the window"),
+            toolTip=self.__tr("Close the window"),
             shortcut=QKeySequence.Close,
             triggered=self.close,
         )
         self.save_action = QAction(
-            self.tr("Save"), self,
+            self.__tr("Save"), self,
             objectName="action-save",
-            toolTip=self.tr("Save current workflow."),
+            toolTip=self.__tr("Save current workflow."),
             triggered=self.save_scheme,
             shortcut=QKeySequence.Save,
         )
         self.save_as_action = QAction(
-            self.tr("Save As ..."), self,
+            self.__tr("Save As ..."), self,
             objectName="action-save-as",
-            toolTip=self.tr("Save current workflow as."),
+            toolTip=self.__tr("Save current workflow as."),
             triggered=self.save_scheme_as,
             shortcut=QKeySequence.SaveAs,
         )
         self.quit_action = QAction(
-            self.tr("Quit"), self,
+            self.__tr("Quit"), self,
             objectName="quit-action",
             triggered=QApplication.closeAllWindows,
             menuRole=QAction.QuitRole,
             shortcut=QKeySequence.Quit,
         )
         self.welcome_action = QAction(
-            self.tr("Welcome"), self,
+            self.__tr("Welcome"), self,
             objectName="welcome-action",
-            toolTip=self.tr("Show welcome screen."),
+            toolTip=self.__tr("Show welcome screen."),
             triggered=self.welcome_dialog,
         )
 
@@ -476,41 +478,41 @@ class CanvasMainWindow(QMainWindow):
                 action.triggered.connect(lambda: open_url_for(role))
 
         self.get_started_action = QAction(
-            self.tr("Get Started"), self,
+            self.__tr("Get Started"), self,
             objectName="get-started-action",
-            toolTip=self.tr("View a 'Get Started' introduction."),
+            toolTip=self.__tr("View a 'Get Started' introduction."),
             icon=canvas_icons("Documentation.svg")
         )
         config_url_action(self.get_started_action, "Quick Start")
 
         self.get_started_screencasts_action = QAction(
-            self.tr("Video Tutorials"), self,
+            self.__tr("Video Tutorials"), self,
             objectName="screencasts-action",
-            toolTip=self.tr("View video tutorials"),
+            toolTip=self.__tr("View video tutorials"),
             icon=canvas_icons("YouTube.svg"),
         )
         config_url_action(self.get_started_screencasts_action, "Screencasts")
 
         self.documentation_action = QAction(
-            self.tr("Documentation"), self,
+            self.__tr("Documentation"), self,
             objectName="documentation-action",
-            toolTip=self.tr("View reference documentation."),
+            toolTip=self.__tr("View reference documentation."),
             icon=canvas_icons("Documentation.svg"),
         )
         config_url_action(self.documentation_action, "Documentation")
 
         self.examples_action = QAction(
-            self.tr("Example Workflows"), self,
+            self.__tr("Example Workflows"), self,
             objectName="examples-action",
-            toolTip=self.tr("Browse example workflows."),
+            toolTip=self.__tr("Browse example workflows."),
             triggered=self.examples_dialog,
             icon=canvas_icons("Examples.svg")
         )
 
         self.about_action = QAction(
-            self.tr("About"), self,
+            self.__tr("About"), self,
             objectName="about-action",
-            toolTip=self.tr("Show about dialog."),
+            toolTip=self.__tr("Show about dialog."),
             triggered=self.open_about,
             menuRole=QAction.AboutRole,
         )
@@ -522,52 +524,52 @@ class CanvasMainWindow(QMainWindow):
         )
         self.recent_scheme_action_group.setExclusive(False)
         self.recent_action = QAction(
-            self.tr("Browse Recent"), self,
+            self.__tr("Browse Recent"), self,
             objectName="recent-action",
-            toolTip=self.tr("Browse and open a recent workflow."),
+            toolTip=self.__tr("Browse and open a recent workflow."),
             triggered=self.recent_scheme,
             shortcut=QKeySequence("Ctrl+Shift+R"),
             icon=canvas_icons("Recent.svg")
         )
         self.reload_last_action = QAction(
-            self.tr("Reload Last Workflow"), self,
+            self.__tr("Reload Last Workflow"), self,
             objectName="reload-last-action",
-            toolTip=self.tr("Reload last open workflow."),
+            toolTip=self.__tr("Reload last open workflow."),
             triggered=self.reload_last,
             shortcut=QKeySequence("Ctrl+R")
         )
         self.clear_recent_action = QAction(
-            self.tr("Clear Menu"), self,
+            self.__tr("Clear Menu"), self,
             objectName="clear-recent-menu-action",
-            toolTip=self.tr("Clear recent menu."),
+            toolTip=self.__tr("Clear recent menu."),
             triggered=self.clear_recent_schemes
         )
         self.show_properties_action = QAction(
-            self.tr("Workflow Info"), self,
+            self.__tr("Workflow Info"), self,
             objectName="show-properties-action",
-            toolTip=self.tr("Show workflow properties."),
+            toolTip=self.__tr("Show workflow properties."),
             triggered=self.show_scheme_properties,
             shortcut=QKeySequence("Ctrl+I"),
             icon=canvas_icons("Document Info.svg")
         )
 
         self.canvas_settings_action = QAction(
-            self.tr("Settings"), self,
+            self.__tr("Settings"), self,
             objectName="canvas-settings-action",
-            toolTip=self.tr("Set application settings."),
+            toolTip=self.__tr("Set application settings."),
             triggered=self.open_canvas_settings,
             menuRole=QAction.PreferencesRole,
             shortcut=QKeySequence.Preferences
         )
         self.canvas_addons_action = QAction(
-            self.tr("&Add-ons..."), self,
+            self.__tr("&Add-ons..."), self,
             objectName="canvas-addons-action",
-            toolTip=self.tr("Manage add-ons."),
+            toolTip=self.__tr("Manage add-ons."),
             triggered=self.open_addons,
         )
         self.show_output_action = QAction(
-            self.tr("&Log"), self,
-            toolTip=self.tr("Show application standard output."),
+            self.__tr("&Log"), self,
+            toolTip=self.__tr("Show application standard output."),
             checkable=True,
             triggered=lambda checked: self.output_dock.setVisible(
                 checked),
@@ -575,27 +577,27 @@ class CanvasMainWindow(QMainWindow):
         if sys.platform == "darwin":
             # Actions for native Mac OSX look and feel.
             self.minimize_action = QAction(
-                self.tr("Minimize"), self,
+                self.__tr("Minimize"), self,
                 triggered=self.showMinimized,
                 shortcut=QKeySequence("Ctrl+M")
             )
             self.zoom_action = QAction(
-                self.tr("Zoom"), self,
+                self.__tr("Zoom"), self,
                 objectName="application-zoom",
                 triggered=self.toggleMaximized,
             )
         self.freeze_action = QAction(
-            self.tr("Freeze"), self,
+            self.__tr("Freeze"), self,
             shortcut=QKeySequence("Shift+F"),
             objectName="signal-freeze-action",
             checkable=True,
-            toolTip=self.tr("Freeze signal propagation (Shift+F)"),
+            toolTip=self.__tr("Freeze signal propagation (Shift+F)"),
             toggled=self.set_signal_freeze,
             icon=canvas_icons("Pause.svg")
         )
 
         self.toggle_tool_dock_expand = QAction(
-            self.tr("Expand Tool Dock"), self,
+            self.__tr("Expand Tool Dock"), self,
             objectName="toggle-tool-dock-expand",
             checkable=True,
             shortcut=QKeySequence("Ctrl+Shift+D"),
@@ -608,18 +610,20 @@ class CanvasMainWindow(QMainWindow):
         self.dock_help_action = None
 
         self.toogle_margins_action = QAction(
-            self.tr("Show Workflow Margins"), self,
+            self.__tr("Show Workflow Margins"), self,
             checkable=True,
-            toolTip=self.tr("Show margins around the workflow view."),
+            toolTip=self.__tr("Show margins around the workflow view."),
         )
         self.toogle_margins_action.setChecked(True)
         self.toogle_margins_action.toggled.connect(
             self.set_scheme_margins_enabled)
 
         self.float_widgets_on_top_action = QAction(
-            self.tr("Display Widgets on Top"), self,
+            self.__tr("Display Widgets on Top"), self,
             checkable=True,
-            toolTip=self.tr("Widgets are always displayed above other windows.")
+            toolTip=self.__tr(
+                "Widgets are always displayed above other windows."
+            )
         )
         self.float_widgets_on_top_action.toggled.connect(
             self.set_float_widgets_on_top_enabled)
@@ -633,7 +637,7 @@ class CanvasMainWindow(QMainWindow):
 
         # File menu
         file_menu = QMenu(
-            self.tr("&File"), menu_bar, objectName="file-menu"
+            self.__tr("&File"), menu_bar, objectName="file-menu"
         )
         file_menu.addAction(self.new_action)
         file_menu.addAction(self.open_action)
@@ -642,7 +646,7 @@ class CanvasMainWindow(QMainWindow):
 
         # File -> Open Recent submenu
         self.recent_menu = QMenu(
-            self.tr("Open Recent"), file_menu, objectName="recent-menu",
+            self.__tr("Open Recent"), file_menu, objectName="recent-menu",
         )
         file_menu.addMenu(self.recent_menu)
 
@@ -702,7 +706,7 @@ class CanvasMainWindow(QMainWindow):
 
         # View menu
         self.view_menu = QMenu(
-            self.tr("&View"), menu_bar, objectName="view-menu"
+            self.__tr("&View"), menu_bar, objectName="view-menu",
         )
         # find and insert window group presets submenu
         window_groups = self.scheme_widget.findChild(
@@ -739,7 +743,7 @@ class CanvasMainWindow(QMainWindow):
 
         # Options menu
         self.options_menu = QMenu(
-            self.tr("&Options"), menu_bar, objectName="options-menu"
+            self.__tr("&Options"), menu_bar, objectName="options-menu",
         )
         self.options_menu.addAction(self.canvas_settings_action)
         self.options_menu.addAction(self.canvas_addons_action)
@@ -750,7 +754,7 @@ class CanvasMainWindow(QMainWindow):
         if sys.platform == "darwin":
             # Mac OS X native look and feel.
             self.window_menu = QMenu(
-                self.tr("Window"), menu_bar, objectName="window-menu"
+                self.__tr("Window"), menu_bar, objectName="window-menu",
             )
             self.window_menu.addAction(self.minimize_action)
             self.window_menu.addAction(self.zoom_action)
@@ -760,7 +764,7 @@ class CanvasMainWindow(QMainWindow):
 
         # Help menu.
         self.help_menu = QMenu(
-            self.tr("&Help"), menu_bar, objectName="help-menu",
+            self.__tr("&Help"), menu_bar, objectName="help-menu",
         )
         self.help_menu.addActions([
             self.about_action,
@@ -818,7 +822,7 @@ class CanvasMainWindow(QMainWindow):
             self.setWindowFilePath(path)
         else:
             self.setWindowFilePath("")
-            self.setWindowTitle(self.tr("Untitled [*]"))
+            self.setWindowTitle(self.__tr("Untitled [*]"))
 
     def setWindowFilePath(self, filePath):  # type: (str) -> None
         if sys.platform == "darwin":
@@ -840,7 +844,7 @@ class CanvasMainWindow(QMainWindow):
 
             if not title:
                 # TODO: should the default name be platform specific
-                title = self.tr("untitled")
+                title = self.__tr("untitled")
 
             self.setWindowTitle(title + "[*]")
 
@@ -1117,7 +1121,8 @@ class CanvasMainWindow(QMainWindow):
             start_dir = user_documents_path()
 
         dlg = QFileDialog(
-            self, windowTitle=self.tr("Open Orange Workflow File"),
+            self,
+            windowTitle=self.__tr("Open Orange Workflow File"),
             acceptMode=QFileDialog.AcceptOpen,
             fileMode=QFileDialog.ExistingFile,
         )
@@ -1168,10 +1173,10 @@ class CanvasMainWindow(QMainWindow):
                 new_scheme = self.new_scheme_from_contents_and_path(f, filename)
         except readwrite.UnsupportedFormatVersionError:
             mb = QMessageBox(
-                self, windowTitle=self.tr("Error"),
+                self, windowTitle=self.__tr("Error"),
                 icon=QMessageBox.Critical,
-                text=self.tr("Unsupported format version"),
-                informativeText=self.tr(
+                text=self.__tr("Unsupported format version"),
+                informativeText=self.__tr(
                     "The file was saved in a format not supported by this "
                     "application."
                 ),
@@ -1182,11 +1187,12 @@ class CanvasMainWindow(QMainWindow):
             mb.open()
         except Exception as err:
             mb = QMessageBox(
-                parent=self, windowTitle=self.tr("Error"),
+                parent=self, windowTitle=self.__tr("Error"),
                 icon=QMessageBox.Critical,
-                text=self.tr("Could not open: '{}'")
-                         .format(os.path.basename(filename)),
-                informativeText=self.tr("Error was: {}").format(err),
+                text=self.__tr(
+                    "Could not open: '{}'"
+                ).format(os.path.basename(filename)),
+                informativeText=self.__tr("Error was: {}").format(err),
                 detailedText="".join(traceback.format_exc())
             )
             mb.setAttribute(Qt.WA_DeleteOnClose)
@@ -1222,9 +1228,12 @@ class CanvasMainWindow(QMainWindow):
         except OSError as err:
             mb = QMessageBox(
                 parent=self, windowTitle="Error", icon=QMessageBox.Critical,
-                text=self.tr("Could not open: '{}'")
-                         .format(os.path.basename(filename)),
-                informativeText=self.tr("Error was: {}").format(err),
+                text=self.__tr(
+                    "Could not open: '{}'"
+                ).format(os.path.basename(filename)),
+                informativeText=self.__tr(
+                    "Error was: {}"
+                ).format(err),
             )
             mb.setAttribute(Qt.WA_DeleteOnClose)
             mb.setWindowModality(Qt.WindowModal)
@@ -1267,21 +1276,23 @@ class CanvasMainWindow(QMainWindow):
         except Exception:  # pylint: disable=broad-except
             log.exception("")
             message_critical(
-                 self.tr("Could not load an Orange Workflow file."),
-                 title=self.tr("Error"),
-                 informative_text=self.tr("An unexpected error occurred "
-                                          "while loading '%s'.") % path,
+                 self.__tr("Could not load an Orange Workflow file."),
+                 title=self.__tr("Error"),
+                 informative_text=self.__tr(
+                     "An unexpected error occurred while loading '%s'."
+                 ) % path,
                  exc_info=True,
                  parent=self)
             return None
         if errors:
             details = render_error_details(errors)
             message_warning(
-                self.tr("Could not load the full workflow."),
-                title=self.tr("Workflow Partially Loaded"),
-                informative_text=self.tr(
-                     "Some of the nodes/links could not be reconstructed "
-                     "and were omitted from the workflow."
+                self.__tr("Could not load the full workflow."),
+                title=self.__tr("Workflow Partially Loaded"),
+                informative_text=
+                self.__tr(
+                    "Some of the nodes/links could not be reconstructed "
+                    "and were omitted from the workflow."
                 ),
                 details=details,
                 parent=self,
@@ -1415,7 +1426,7 @@ class CanvasMainWindow(QMainWindow):
 
     def __title_for_scheme(self, scheme):
         # type: (Optional[Scheme]) -> str
-        title = self.tr("untitled")
+        title = self.__tr("untitled")
         if scheme is not None:
             title = scheme.title or title
         return title
@@ -1433,14 +1444,16 @@ class CanvasMainWindow(QMainWindow):
         path = document.path()
         if path:
             filename = os.path.basename(document.path())
-            message = self.tr('Do you want to save changes made to %s?') % filename
+            message = self.__tr(
+                'Do you want to save changes made to %s?'
+            ) % filename
         else:
-            message = self.tr('Do you want to save this workflow?')
+            message = self.__tr('Do you want to save this workflow?')
         selected = message_question(
             message,
-            self.tr("Save Changes?"),
-            self.tr("Your changes will be lost if you do not save them."),
-            buttons=QMessageBox.Save | QMessageBox.Cancel | \
+            self.__tr("Save Changes?"),
+            self.__tr("Your changes will be lost if you do not save them."),
+            buttons=QMessageBox.Save | QMessageBox.Cancel |
                     QMessageBox.Discard,
             default_button=QMessageBox.Save,
             parent=self)
@@ -1502,8 +1515,8 @@ class CanvasMainWindow(QMainWindow):
             start_dir = os.path.join(start_dir, title + ".ows")
 
         filename, _ = QFileDialog.getSaveFileName(
-            self, self.tr("Save Orange Workflow File"),
-            start_dir, self.tr("Orange Workflow (*.ows)")
+            self, self.__tr("Save Orange Workflow File"),
+            start_dir, self.__tr("Orange Workflow (*.ows)")
         )
 
         if filename:
@@ -1536,9 +1549,10 @@ class CanvasMainWindow(QMainWindow):
         except Exception:
             log.error("Error saving %r to %r", scheme, filename, exc_info=True)
             message_critical(
-                self.tr('An error occurred while trying to save workflow '
-                        '"%s" to "%s"') % (title, basename),
-                title=self.tr("Error saving %s") % basename,
+                self.__tr(
+                    'An error occurred while trying to save workflow "%s" to "%s"'
+                ) % (title, basename),
+                title=self.__tr("Error saving %s") % basename,
                 exc_info=True,
                 parent=self
             )
@@ -1553,10 +1567,11 @@ class CanvasMainWindow(QMainWindow):
             log.error("%s saving '%s'", type(ex).__name__, filename,
                       exc_info=True)
             message_warning(
-                self.tr('Workflow "%s" could not be saved. The path does '
-                        'not exist') % title,
+                self.__tr(
+                    'Workflow "%s" could not be saved. The path does not exist'
+                ) % title,
                 title="",
-                informative_text=self.tr("Choose another location."),
+                informative_text=self.__tr("Choose another location."),
                 parent=self
             )
             return False
@@ -1564,12 +1579,15 @@ class CanvasMainWindow(QMainWindow):
             log.error("%s saving '%s'", type(ex).__name__, filename,
                       exc_info=True)
             message_warning(
-                self.tr('Workflow "%s" could not be saved. You do not '
-                        'have write permissions.') % title,
+                self.__tr(
+                    'Workflow "%s" could not be saved. You do not have write '
+                    'permissions.'
+                ) % title,
                 title="",
-                informative_text=self.tr(
+                informative_text=self.__tr(
                     "Change the file system permissions or choose "
-                    "another location."),
+                    "another location."
+                ),
                 parent=self
             )
             return False
@@ -1577,7 +1595,7 @@ class CanvasMainWindow(QMainWindow):
             log.error("%s saving '%s'", type(ex).__name__, filename,
                       exc_info=True)
             message_warning(
-                self.tr('Workflow "%s" could not be saved.') % title,
+                self.__tr('Workflow "%s" could not be saved.') % title,
                 title="",
                 informative_text=os.strerror(ex.errno),
                 exc_info=True,
@@ -1588,9 +1606,10 @@ class CanvasMainWindow(QMainWindow):
         except Exception:  # pylint: disable=broad-except
             log.error("Error saving %r to %r", scheme, filename, exc_info=True)
             message_critical(
-                self.tr('An error occurred while trying to save workflow '
-                        '"%s" to "%s"') % (title, basename),
-                title=self.tr("Error saving %s") % basename,
+                self.__tr(
+                    'An error occurred while trying to save workflow "%s" to "%s"'
+                ) % (title, basename),
+                title=self.__tr("Error saving %s") % basename,
                 exc_info=True,
                 parent=self
             )
@@ -1679,13 +1698,16 @@ class CanvasMainWindow(QMainWindow):
         Ask to restore changes, loading swp file on yes,
         clearing swp file on no.
         """
-        title = self.tr('Restore unsaved changes from crash?')
+        title = self.__tr('Restore unsaved changes from crash?'
+        )
         name = QApplication.applicationName() or "Orange"
         selected = message_information(
             title,
-            self.tr("Restore Changes?"),
-            self.tr("{} seems to have crashed at some point.\n"
-                    "Changes will be discarded if not restored now.").format(name),
+            self.__tr("Restore Changes?"),
+            self.__tr(
+                "{} seems to have crashed at some point.\n"
+                "Changes will be discarded if not restored now."
+            ).format(name),
             buttons=QMessageBox.Yes | QMessageBox.No,
             default_button=QMessageBox.Yes,
             parent=self)
@@ -1812,10 +1834,9 @@ class CanvasMainWindow(QMainWindow):
         dialog = previewdialog.PreviewDialog(self)
         model = previewmodel.PreviewModel(dialog, items=items)
 
-        title = self.tr("Recent Workflows")
+        title = self.__tr("Recent Workflows")
         dialog.setWindowTitle(title)
         template = ('<h3 style="font-size: 26px">\n'
-                    #'<img height="26" src="canvas_icons:Recent.svg">\n'
                     '{0}\n'
                     '</h3>')
         dialog.setHeading(template.format(title))
@@ -1847,7 +1868,7 @@ class CanvasMainWindow(QMainWindow):
         items = [previewmodel.PreviewItem(path=t.abspath()) for t in tutors]
         dialog = previewdialog.PreviewDialog(self)
         model = previewmodel.PreviewModel(dialog, items=items)
-        title = self.tr("Example Workflows")
+        title = self.__tr("Example Workflows")
         dialog.setWindowTitle(title)
         template = ('<h3 style="font-size: 26px">\n'
                     '{0}\n'
@@ -1873,9 +1894,9 @@ class CanvasMainWindow(QMainWindow):
         """
         name = QApplication.applicationName()
         if name:
-            title = self.tr("Welcome to {}").format(name)
+            title = self.__tr("Welcome to {}").format(name)
         else:
-            title = self.tr("Welcome")
+            title = self.__tr("Welcome")
         dialog = welcomedialog.WelcomeDialog(self, windowTitle=title)
         feedback = config.default.APPLICATION_URLS.get("Feedback", "")
         if feedback:
@@ -1902,35 +1923,35 @@ class CanvasMainWindow(QMainWindow):
                 dialog.accept()
 
         new_action = QAction(
-            self.tr("New"), dialog,
-            toolTip=self.tr("Open a new workflow."),
+            self.__tr("New"), dialog,
+            toolTip=self.__tr("Open a new workflow."),
             triggered=new_scheme,
             shortcut=QKeySequence.New,
             icon=canvas_icons("New.svg")
         )
 
         open_action = QAction(
-            self.tr("Open"), dialog,
+            self.__tr("Open"), dialog,
             objectName="welcome-action-open",
-            toolTip=self.tr("Open a workflow."),
+            toolTip=self.__tr("Open a workflow."),
             triggered=open_scheme,
             shortcut=QKeySequence.Open,
             icon=canvas_icons("Open.svg")
         )
 
         recent_action = QAction(
-            self.tr("Recent"), dialog,
+            self.__tr("Recent"), dialog,
             objectName="welcome-recent-action",
-            toolTip=self.tr("Browse and open a recent workflow."),
+            toolTip=self.__tr("Browse and open a recent workflow."),
             triggered=open_recent,
             shortcut=QKeySequence("Ctrl+Shift+R"),
             icon=canvas_icons("Recent.svg")
         )
 
         examples_action = QAction(
-            self.tr("Examples"), dialog,
+            self.__tr("Examples"), dialog,
             objectName="welcome-examples-action",
-            toolTip=self.tr("Browse example workflows."),
+            toolTip=self.__tr("Browse example workflows."),
             triggered=browse_examples,
             icon=canvas_icons("Examples.svg")
         )
@@ -1968,7 +1989,7 @@ class CanvasMainWindow(QMainWindow):
         settings = QSettings()
         value_key = "schemeinfo/show-at-new-scheme"
         dialog = SchemeInfoDialog(
-            self, windowTitle=self.tr("Workflow Info"),
+            self, windowTitle=self.__tr("Workflow Info"),
         )
         dialog.setFixedSize(725, 450)
         dialog.setShowAtNewScheme(settings.value(value_key, False, type=bool))
@@ -1995,7 +2016,7 @@ class CanvasMainWindow(QMainWindow):
         if status == QDialog.Accepted:
             editor = dlg.editor
             stack = current_doc.undoStack()
-            stack.beginMacro(self.tr("Change Info"))
+            stack.beginMacro(self.__tr("Change Info"))
             current_doc.setTitle(editor.title())
             current_doc.setDescription(editor.description())
             stack.endMacro()
@@ -2046,7 +2067,7 @@ class CanvasMainWindow(QMainWindow):
         """Open canvas settings/preferences dialog
         """
         dlg = UserSettingsDialog(self)
-        dlg.setWindowTitle(self.tr("Preferences"))
+        dlg.setWindowTitle(self.__tr("Preferences"))
         dlg.show()
         status = dlg.exec()
 
@@ -2078,7 +2099,8 @@ class CanvasMainWindow(QMainWindow):
                         .format(name=name),
                         parent=self).exec()
         dlg = addons.AddonManagerDialog(
-            self, windowTitle=self.tr("Installer"), modal=True
+            self, windowTitle=self.__tr("Installer"),
+            modal=True
         )
         dlg.setStyle(QApplication.style())
         dlg.setAttribute(Qt.WA_DeleteOnClose)
@@ -2319,8 +2341,8 @@ class CanvasMainWindow(QMainWindow):
     def __handle_help_query_response(self, res: Optional[QUrl]):
         if res is None:
             mb = QMessageBox(
-                text=self.tr("There is no documentation for this widget."),
-                windowTitle=self.tr("No help found"),
+                text=self.__tr("There is no documentation for this widget."),
+                windowTitle=self.__tr("No help found"),
                 icon=QMessageBox.Information,
                 parent=self,
                 objectName="no-help-found-message-box"
@@ -2656,7 +2678,7 @@ def render_error_details(errors: Iterable[Exception]) -> str:
     contents = []
     if missing_node_defs is not None:
         contents.extend([
-            "Missing node definitions:",
+            translate("render_error_details", "Missing node definitions:"),
             *["  \N{BULLET} " + e.args[0] for e in missing_node_defs],
             "",
             # "(possibly due to missing install requirements)"
@@ -2664,7 +2686,7 @@ def render_error_details(errors: Iterable[Exception]) -> str:
 
     if link_type_erors:
         contents.extend([
-            "Incompatible connection types:",
+            translate("render_error_details", "Incompatible connection types:"),
             *["  \N{BULLET} " + e.args[0] for e in link_type_erors],
             ""
         ])
@@ -2673,7 +2695,7 @@ def render_error_details(errors: Iterable[Exception]) -> str:
         def format_exception(e: BaseException):
             return "".join(traceback.format_exception_only(type(e), e))
         contents.extend([
-            "Unqualified errors:",
+            translate("render_error_details", "Unqualified errors:"),
             *["  \N{BULLET} " + format_exception(e) for e in other]
         ])
 
