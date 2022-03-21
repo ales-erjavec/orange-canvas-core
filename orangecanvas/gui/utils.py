@@ -281,7 +281,7 @@ def gradient_darker(grad, factor):
     return new_grad
 
 
-def brush_darker(brush: QBrush, factor: bool) -> QBrush:
+def brush_darker(brush: QBrush, factor: int) -> QBrush:
     """Return a copy of the brush darkened by factor.
     """
     grad = brush.gradient()
