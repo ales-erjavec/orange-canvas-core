@@ -24,6 +24,8 @@ from AnyQt.QtCore import (
     Qt, QObject, QSize, QRect, QPoint, QSignalMapper
 )
 from AnyQt.QtCore import Signal, Property
+from .svgiconengine import StyledSvgIconEngine
+from .. import styles
 
 from ..utils import set_flag
 from .utils import brush_darker, ScrollBar
@@ -235,7 +237,8 @@ class ToolBoxTabButton(QToolButton):
             icon_area_rect = icon_area_rect
             icon_rect = QRect(QPoint(0, 0), opt.iconSize)
             icon_rect.moveCenter(icon_area_rect.center())
-            opt.icon.paint(p, icon_rect, Qt.AlignCenter, mode, state)
+            with StyledSvgIconEngine.setOverridePalette(styles.breeze_light()):
+                opt.icon.paint(p, icon_rect, Qt.AlignCenter, mode, state)
         p.restore()
 
 
