@@ -1,7 +1,8 @@
 import io
 from contextlib import contextmanager
+from types import MappingProxyType as Mapping
 
-from typing import IO, Optional
+from typing import Iterable, Tuple, IO, Optional
 
 from itertools import count
 from xml.sax import make_parser, handler, saxutils
@@ -363,3 +364,68 @@ def replace_css_style(
     filter.setContentHandler(writer)
     filter.parse(svgcontents)
     return buffer.getvalue()
+
+
+def svg_insert_color_defs(
+        handler: handler.ContentHandler,
+        colors: Iterable[Tuple[str, QColor]],
+        attrs: 'Mapping[str, str]' = Mapping
+) -> None:
+    handler.startElement("defs", attrs)
+    for id, color in colors:
+        handler.characters("\n\t")
+        handler.startElement("solidColor", {
+            "id": id, "solid-color": color.name()
+        })
+    handler.endElement("defs")
+
+
+# https://doc.qt.io/qt-5/stylesheet-reference.html#paletterole
+Roles = (
+    ("alternate-base", QPalette.AlternateBase),
+    ("base", QPalette.Base),
+    ("bright-text", QPalette.BrightText),
+    ("button", QPalette.Button),
+    ("button-text", QPalette.ButtonText),
+    ("dark", QPalette.Dark),
+    ("highlight", QPalette.Highlight),
+    ("highlighted-text", QPalette.HighlightedText),
+    ("light", QPalette.Light),
+    ("link", QPalette.Link),
+    ("link-visited", QPalette.LinkVisited),
+    ("mid", QPalette.Mid),
+    ("midlight", QPalette.Midlight),
+    ("shadow", QPalette.Shadow),
+    ("text", QPalette.Text),
+    ("window", QPalette.Window),
+    ("window-text", QPalette.WindowText),
+)
+
+
+def qpalette_to_svg_defs(
+        handler: handler.ContentHandler, palette: QPalette,
+        attrs: 'Mapping[str, str]' = Mapping({"id": "current-color-scheme"})
+) -> None:
+    """
+    Write out the palette's colors to the content handler as a series of
+    'solidColor' defines.
+
+    The individual colors have `id='palette-{PaletteRole}'` where PaletteRole
+    are text, base, background, ... as defined in `stylesheet-reference`__.
+
+    __ https://doc.qt.io/qt-5/stylesheet-reference.html#paletterole
+
+    Parameters
+    ----------
+    handler: handler.ContentHandler
+        Content handler at the position where the defines will be inserted.
+    palette: QPalette
+        The palette to dump.
+    attrs: Mapping[str, str]
+
+    """
+    def colors() -> Iterable[Tuple[str, QColor]]:
+        for name, role in Roles:
+            yield "palette-"+name, palette.color(role)
+
+    svg_insert_color_defs(handler, colors(), attrs=attrs)
