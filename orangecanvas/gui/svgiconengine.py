@@ -391,9 +391,11 @@ class SymbolIconEngine(QIconEngine):
     def paint(self, painter, rect, mode, state):
         # type: (QPainter, QRect, QIcon.Mode, QIcon.State) -> None
         if not self.__base.isNull():
-            palette = self.__paletteFromPaintDevice(painter.device())
+            palette = StyledSvgIconEngine._StyledSvgIconEngine__paletteOverride
             if palette is None:
-                palette = self._palette()
+                palette = self.__paletteFromPaintDevice(painter.device())
+                if palette is None:
+                    palette = self._palette()
             size = rect.size()
             dpr = painter.device().devicePixelRatioF()
             size = size * dpr
@@ -401,6 +403,10 @@ class SymbolIconEngine(QIconEngine):
             painter.drawPixmap(rect, pm)
 
     def _palette(self) -> QPalette:
+        palette = StyledSvgIconEngine._StyledSvgIconEngine__paletteOverride
+        if palette is None:
+            palette = QApplication.palette()
+        return palette
         # if self.__palette is not None:
         #     return self.__palette
         # elif self.__style_object is not None:
@@ -435,11 +441,11 @@ class SymbolIconEngine(QIconEngine):
         pmcachekey = namespace + cachekey + str(style_key)
         pm = QPixmapCache.find(pmcachekey)
         if pm is None or pm.isNull():
-            src = self.__base.pixmap(size, mode, state)
+            size_2 = size * 2
+            src = self.__base.pixmap(size_2, mode, state)
             src = src.toImage().convertToFormat(QImage.Format_ARGB32_Premultiplied)
             dest = QImage(src)
             color = palette.color(QPalette.Text)
-            # color.setAlphaF(0.5)
             p = QPainter(dest)
             p.setCompositionMode(QPainter.CompositionMode_HardLight)
             p.fillRect(0, 0, dest.width(), dest.height(), color)
@@ -447,41 +453,14 @@ class SymbolIconEngine(QIconEngine):
                 p.setCompositionMode(QPainter.CompositionMode_DestinationIn)
                 p.drawImage(0, 0, src)
             p.end()
-            if color.lightness() > 127:
-                dest = src
+            if luminance(color) > 0.5:
+                from orangecanvas.utils.image import grayscale
+                dest = grayscale(src)
+                # dest = src
                 dest.invertPixels()
             else:
                 dest = src
-            # dest = src
-            # dest.invertPixels()
             pm = QPixmap.fromImage(dest)
-            QPixmapCache.insert(pmcachekey, pm)
-            #
-            # pixmap = QPixmap(size)
-            # pixmap.fill(Qt.transparent)
-            # p = QPainter(pixmap)
-            #
-            # p.setRenderHint(QPainter.Antialiasing, True)
-            # p.setBrush(QBrush(self.__gradient))
-            # p.setPen(Qt.NoPen)
-            # icon_size = QSize(5 * size.width() // 8, 5 * size.height() // 8)
-            # icon_rect = QRect(QPoint(0, 0), icon_size)
-            # ellipse_rect = QRect(QPoint(0, 0), size)
-            # p.drawEllipse(ellipse_rect)
-            # icon_rect.moveCenter(ellipse_rect.center())
-            # palette = styles.breeze_light()
-            # # Special case for StyledSvgIconEngine. This is drawn on a
-            # # light-ish color background and should not render with a dark palette
-            # # (this is bad, and I feel bad).
-            # with StyledSvgIconEngine.setOverridePalette(palette):
-            #     self.__base.paint(p, icon_rect, Qt.AlignCenter)
-            # p.end()
-            # return pixmap
-            # pm = QPixmap(size)
-            # pm.fill(Qt.transparent)
-            # painter = QPainter(pm)
-            # renderer.render(painter, QRectF(0, 0, size.width(), size.height()))
-            # painter.end()
             QPixmapCache.insert(pmcachekey, pm)
 
         style = QApplication.style()

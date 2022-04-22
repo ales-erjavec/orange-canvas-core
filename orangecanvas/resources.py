@@ -210,9 +210,10 @@ class icon_loader(resource_loader):
                 except FileNotFoundError:
                     pass
                 else:
-                    icon = QIcon(StyledSvgIconEngine(contents))
-                    self._icon_cache[cache_key] = icon
-                    return icon
+                    if b'current-color-scheme' in contents:
+                        icon = QIcon(StyledSvgIconEngine(contents))
+                        self._icon_cache[cache_key] = icon
+                        return icon
 
         if False and len(icons) == 1 and icons[0].lower().endswith(".svg") and self.package is not None:
             contents = pkgutil.get_data(self.package, name)
@@ -221,10 +222,11 @@ class icon_loader(resource_loader):
             if cache_key not in self._icon_cache:
                 for path in icons:
                     icon.addFile(path)
+                icon = QIcon(SymbolIconEngine(icon))
                 self._icon_cache[cache_key] = icon
             else:
                 icon = self._icon_cache[cache_key]
-        icon = QIcon(SymbolIconEngine(icon))
+        # icon = QIcon(SymbolIconEngine(icon))
         return QIcon(icon)
 
     def open(self, name):
