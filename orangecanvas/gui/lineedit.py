@@ -86,6 +86,13 @@ class LineEditButton(QToolButton):
         if self.__flat:
             opt = QStyleOptionToolButton()
             self.initStyleOption(opt)
+            pm = opt.icon.pixmap(self.iconSize(), )
+            print("isNull()", pm.isNull(), flush=True)
+            print("isQBitmap", pm.isQBitmap(), flush=True)
+            print("height()", pm.height(), flush=True)
+            print("width()", pm.width(), flush=True)
+            print("devicePixelRatioF()", pm.devicePixelRatioF(), flush=True)
+
             p = QStylePainter(self)
             p.drawControl(QStyle.CE_ToolButtonLabel, opt)
             p.end()
