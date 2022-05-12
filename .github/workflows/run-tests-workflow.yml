@@ -137,7 +137,7 @@ jobs:
       - name: Run Tests
         if: ${{ !startsWith(runner.os, 'Linux') }}
 #        run: coverage run -m unittest
-        run: python -m pytest -v --cov=orangecanvas
+        run: python -m pytest -v 
 #        run: lldb --batch -o run -k bt -k 'quit 1' -- python -m pytest -v --cov=orangecanvas
 
       - name: Run Tests with Xvfb
