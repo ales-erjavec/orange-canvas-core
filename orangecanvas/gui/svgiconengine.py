@@ -440,22 +440,17 @@ class SymbolIconEngine(QIconEngine):
             self, size: QSize, mode: QIcon.Mode, state: QIcon.State,
             palette: QPalette
     ) -> QPixmap:
-        active = mode in (QIcon.Active, QIcon.Selected)
-        disabled = mode == QIcon.Disabled
-        cg = QPalette.Disabled if disabled else QPalette.Active
-        role = QPalette.Foreground if active else QPalette.HighlightedText
-        currentcolor = palette.color(cg, role)
-        namespace = "{}:{}/{}/".format(
-            __name__, __class__.__name__, self.__cache_key)
-        cachekey = "{}x{}{}".format(
-            size.width(), size.height(), currentcolor.name()
-        )
-        style_key = "{}-{}-{}".format(hex(palette.cacheKey()), cg, role)
-
-        pmcachekey = namespace + cachekey + str(style_key)
+        active = mode in _QIcon_Active_Modes
+        disabled = mode == _QIcon_Disabled
+        cg = _QPalette_Disabled if disabled else _QPalette_Active
+        role = _QPalette_WindowText if active else _QPalette_HighlightedText
+        namespace = f"{__name__}:{__class__.__name__}/{self.__cache_key}/"
+        cachekey = f"{size.width()}x{size.height()}"
+        style_key = f"{hex(palette.cacheKey())}-{cg}-{role}"
+        pmcachekey = f"{namespace}{cachekey}{style_key}"
         pm = QPixmapCache.find(pmcachekey)
         if pm is None or pm.isNull():
-            size_2 = size * 2
+            size_2 = size
             src = self.__base.pixmap(size_2, mode, state)
             src = src.toImage().convertToFormat(QImage.Format_ARGB32_Premultiplied)
             dest = QImage(src)
@@ -470,14 +465,13 @@ class SymbolIconEngine(QIconEngine):
             if luminance(color) > 0.5:
                 from orangecanvas.utils.image import grayscale
                 dest = grayscale(src)
-                # dest = src
                 dest.invertPixels()
             else:
                 dest = src
             pm = QPixmap.fromImage(dest)
             QPixmapCache.insert(pmcachekey, pm)
 
-        style = QApplication.style()
+        self.__style = style = QApplication.style()
         if style is not None:
             opt = QStyleOption()
             opt.palette = palette
