@@ -2203,6 +2203,15 @@ class CanvasMainWindow(QMainWindow):
         if event.type() == QEvent.ModifiedChange:
             # clear transient flag on any change
             self.__is_transient = False
+        elif event.type() == QEvent.PaletteChange:
+            # If a any stylesheet is applied that the palette dependent
+            # rendering is not updated on children.
+            def repolish(widget: QWidget):
+                style = widget.style()
+                style.unpolish(widget)
+                style.polish(widget)
+            for c in self.findChildren(QWidget):
+                repolish(c)
         super().changeEvent(event)
 
     def closeEvent(self, event):
