@@ -300,7 +300,7 @@ class FlattenedTreeItemModel(QAbstractProxyModel):
     def index(self, row, column=0, parent=QModelIndex()):
         # type: (int, int, QModelIndex) -> QModelIndex
         if not parent.isValid():
-            return self.createIndex(row, column, object=row)
+            return self.createIndex(row, column, row)
         else:
             return QModelIndex()
 

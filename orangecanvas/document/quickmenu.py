@@ -282,9 +282,9 @@ class MenuPage(ToolTree):
 
             # add scrollbar width
             scroll = self.view().verticalScrollBar()
-            isTransient = scroll.style().styleHint(QStyle.SH_ScrollBar_Transient, widget=scroll)
+            isTransient = scroll.style().styleHint(QStyle.SH_ScrollBar_Transient, None, scroll)
             if not isTransient:
-                width += scroll.style().pixelMetric(QStyle.PM_ScrollBarExtent, widget=scroll)
+                width += scroll.style().pixelMetric(QStyle.PM_ScrollBarExtent, None, scroll)
 
             self.__sizeHint = QSize(width, height)
 

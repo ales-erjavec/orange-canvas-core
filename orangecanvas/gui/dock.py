@@ -67,8 +67,7 @@ class CollapsibleDockWidget(QDockWidget):
         self.__iconRight = QIcon(icon)
         self.__iconLeft = QIcon(icon_rev)
         # Find the close button an install an event filter or close event
-        close = self.findChild(QAbstractButton,
-                               name="qt_dockwidget_closebutton")
+        close = self.findChild(QAbstractButton, "qt_dockwidget_closebutton")
         assert close is not None
         close.installEventFilter(self)
         self.__closeButton = close

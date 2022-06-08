@@ -557,8 +557,9 @@ class ToolBox(QFrame):
 
             # check if scrollbar is transient
             scrollBar = self.__scrollArea.verticalScrollBar()
-            transient = scrollBar.style().styleHint(QStyle.SH_ScrollBar_Transient,
-                                                    widget=scrollBar)
+            transient = scrollBar.style().styleHint(
+                QStyle.SH_ScrollBar_Transient, None, scrollBar
+            )
 
             scroll_w = scroll.verticalScrollBar().sizeHint().width() if not transient else 0
 
