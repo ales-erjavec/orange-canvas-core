@@ -3,6 +3,7 @@ Undo/Redo Commands
 
 """
 import typing
+from abc import abstractmethod
 from typing import Callable, Optional, Tuple, List, Any
 
 from AnyQt.QtWidgets import QUndoCommand
@@ -19,64 +20,39 @@ if typing.TYPE_CHECKING:
 
 class UndoCommand(QUndoCommand):
     """
-    For pickling
+    For serialization
     """
     def __init__(self, text, parent=None):
-        QUndoCommand.__init__(self, text, parent)
-        self.__parent = parent
-        self.__initialized = True
+        super().__init__(text, parent)
 
-        # defined and initialized in __setstate__
-        # self.__child_states = {}
-        # self.__children = []
+    @abstractmethod
+    def deconstruct(self) -> '_Command':
+        return UndoCommand, (self.text(), ), dict(self.__dict__), UndoCommand._deconstruct_children(self)
 
-    def __getstate__(self):
-        return {
-            **{k: v for k, v in self.__dict__.items()},
-            '_UndoCommand__initialized': False,
-            '_UndoCommand__text': self.text(),
-            '_UndoCommand__children':
-                [self.child(i) for i in range(self.childCount())]
-        }
+    def _deconstruct_children(self) -> List["_Command"]:
+        return [undocommand_deconstruct(
+            self.child(i)) for i in range(self.childCount())]
 
-    def __setstate__(self, state):
-        if hasattr(self, '_UndoCommand__initialized') and \
-                self.__initialized:
-            return
 
-        text = state['_UndoCommand__text']
-        parent = state['_UndoCommand__parent']  # type: UndoCommand
+_Command = Tuple[type, tuple, dict, List['_Command']]
 
-        if parent is not None and \
-                (not hasattr(parent, '_UndoCommand__initialized') or
-                 not parent.__initialized):
-            # will be initialized in parent's __setstate__
-            if not hasattr(parent, '_UndoCommand__child_states'):
-                setattr(parent, '_UndoCommand__child_states', {})
-            parent.__child_states[self] = state
-            return
 
-        # init must be called on unpickle-time to recreate Qt object
-        UndoCommand.__init__(self, text, parent)
-        if hasattr(self, '_UndoCommand__child_states'):
-            for child, s in self.__child_states.items():
-                child.__setstate__(s)
+def undocommand_deconstruct(command: QUndoCommand) -> _Command:
+    if type(command) == QUndoCommand:
+        return UndoCommand.deconstruct(command)
+    elif isinstance(command, UndoCommand):
+        return command.deconstruct()
+    else:
+        raise TypeError
 
-        self.__dict__ = {k: v for k, v in state.items()}
-        self.__initialized = True
 
-    @staticmethod
-    def from_QUndoCommand(qc: QUndoCommand, parent=None):
-        if type(qc) == QUndoCommand:
-            qc.__class__ = UndoCommand
-
-        qc.__parent = parent
-
-        children = [qc.child(i) for i in range(qc.childCount())]
-        for child in children:
-            UndoCommand.from_QUndoCommand(child, parent=qc)
-
-        return qc
+def undocommand_reconstruct(command: _Command, parent=None):
+    class_, args, state, children = command
+    command = class_(*args, parent=parent)
+    command.__dict__.update(state)
+    for c in children:
+        _ = undocommand_reconstruct(c, parent=command)
+    return command
 
 
 class AddNodeCommand(UndoCommand):
@@ -91,6 +67,9 @@ class AddNodeCommand(UndoCommand):
 
     def undo(self):
         self.scheme.remove_node(self.node)
+
+    def deconstruct(self):
+        return AddNodeCommand, (self.scheme, self.node), {}, []
 
 
 class RemoveNodeCommand(UndoCommand):
@@ -118,6 +97,10 @@ class RemoveNodeCommand(UndoCommand):
         # Undo child commands
         super().undo()
 
+    def deconstruct(self) -> '_Command':
+        return (RemoveNodeCommand, (self.scheme, self.node,),
+                dict(self.__dict__), [])
+
 
 class AddLinkCommand(UndoCommand):
     def __init__(self, scheme, link, parent=None):
@@ -131,6 +114,10 @@ class AddLinkCommand(UndoCommand):
 
     def undo(self):
         self.scheme.remove_link(self.link)
+
+    def deconstruct(self) -> '_Command':
+        return (AddLinkCommand, (self.scheme, self.link,),
+                dict(self.__dict__), [])
 
 
 class RemoveLinkCommand(UndoCommand):
@@ -150,6 +137,10 @@ class RemoveLinkCommand(UndoCommand):
         self.scheme.insert_link(self._index, self.link)
         self._index = -1
 
+    def deconstruct(self) -> '_Command':
+        return (RemoveLinkCommand, (self.scheme, self.link,),
+                dict(self.__dict__), [])
+
 
 class InsertNodeCommand(UndoCommand):
     def __init__(
@@ -161,11 +152,19 @@ class InsertNodeCommand(UndoCommand):
             parent=None # type: Optional[UndoCommand]
     ):  # type: (...) -> None
         super().__init__("Insert widget into link", parent)
-
+        self.scheme = scheme
+        self.new_node = new_node
+        self.old_link = old_link
+        self.new_links = new_links
         AddNodeCommand(scheme, new_node, parent=self)
         RemoveLinkCommand(scheme, old_link, parent=self)
         for link in new_links:
             AddLinkCommand(scheme, link, parent=self)
+
+    def deconstruct(self) -> '_Command':
+        return (InsertNodeCommand,
+                (self.scheme, self.new_node, self.old_link, self.new_links),
+                dict(self.__dict__), [])
 
 
 class AddAnnotationCommand(UndoCommand):
@@ -180,6 +179,10 @@ class AddAnnotationCommand(UndoCommand):
 
     def undo(self):
         self.scheme.remove_annotation(self.annotation)
+
+    def deconstruct(self) -> '_Command':
+        return (AddAnnotationCommand, (self.scheme, self.annotation,),
+                dict(self.__dict__), [])
 
 
 class RemoveAnnotationCommand(UndoCommand):
@@ -199,6 +202,10 @@ class RemoveAnnotationCommand(UndoCommand):
         self.scheme.insert_annotation(self._index, self.annotation)
         self._index = -1
 
+    def deconstruct(self) -> '_Command':
+        return (RemoveAnnotationCommand, (self.scheme, self.annotation,),
+                dict(self.__dict__), [])
+
 
 class MoveNodeCommand(UndoCommand):
     def __init__(self, scheme, node, old, new, parent=None):
@@ -214,6 +221,10 @@ class MoveNodeCommand(UndoCommand):
 
     def undo(self):
         self.node.position = self.old
+
+    def deconstruct(self) -> '_Command':
+        return (MoveNodeCommand, (self.scheme, self.node, self.old, self.new),
+                dict(self.__dict__), [])
 
 
 class ResizeCommand(UndoCommand):
@@ -247,6 +258,10 @@ class ArrowChangeCommand(UndoCommand):
     def undo(self):
         self.item.set_line(*self.old_line)
 
+    def deconstruct(self) -> '_Command':
+        return (ArrowChangeCommand, (self.scheme, self.item, self.new_line,),
+                dict(self.__dict__), [])
+
 
 class AnnotationGeometryChange(UndoCommand):
     def __init__(
@@ -269,6 +284,11 @@ class AnnotationGeometryChange(UndoCommand):
     def undo(self):
         self.annotation.geometry = self.old  # type: ignore
 
+    def deconstruct(self) -> '_Command':
+        return (AnnotationGeometryChange,
+                (self.scheme, self.annotation, self.old, self.new),
+                dict(self.__dict__), [])
+
 
 class RenameNodeCommand(UndoCommand):
     def __init__(self, scheme, node, old_name, new_name, parent=None):
@@ -284,6 +304,10 @@ class RenameNodeCommand(UndoCommand):
 
     def undo(self):
         self.node.set_title(self.old_name)
+
+    def deconstruct(self) -> '_Command':
+        return (RemoveNodeCommand, (self.scheme, self.node, self.old_name, self.new_name),
+                dict(self.__dict__), [])
 
 
 class TextChangeCommand(UndoCommand):
@@ -310,6 +334,13 @@ class TextChangeCommand(UndoCommand):
 
     def undo(self):
         self.annotation.set_content(self.old_content, self.old_content_type)
+
+    def deconstruct(self) -> '_Command':
+        return (TextChangeCommand,
+                (self.scheme, self.annotation,
+                 self.old_content, self.old_content_type,
+                 self.new_content, self.new_content_type),
+                dict(self.__dict__), [])
 
 
 class SetAttrCommand(UndoCommand):

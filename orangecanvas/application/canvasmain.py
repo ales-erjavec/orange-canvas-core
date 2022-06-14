@@ -64,7 +64,7 @@ from .outputview import OutputView, TextStream
 from .settings import UserSettingsDialog, category_state
 from ..document.schemeedit import SchemeEditWidget
 from ..document.quickmenu import QuickMenu
-from ..document.commands import UndoCommand
+from ..document import commands
 from ..document import interactions
 from ..gui.itemmodels import FilterProxyModel
 from ..registry import WidgetRegistry, WidgetDescription, CategoryDescription
@@ -1600,12 +1600,11 @@ class CanvasMainWindow(QMainWindow):
         """
         document = self.current_document()
         undoStack = document.undoStack()
-
         propertiesDiff = document.uncleanProperties()
-        undoDiff = [UndoCommand.from_QUndoCommand(undoStack.command(i))
-                    for i in
-                    range(undoStack.cleanIndex(), undoStack.count())]
-        diff = (propertiesDiff, undoDiff)
+        commands_ = [undoStack.command(i)
+                     for i in range(undoStack.cleanIndex(), undoStack.count())]
+        commands_ = [commands.undocommand_deconstruct(c) for c in commands_]
+        diff = (propertiesDiff, commands_)
 
         try:
             with open(filename, "wb") as f:
@@ -1723,7 +1722,7 @@ class CanvasMainWindow(QMainWindow):
 
         try:
             with open(filename, "rb") as f:
-                loaded: Tuple[Dict[SchemeNode, dict], List[UndoCommand]]
+                loaded: Tuple[Dict[SchemeNode, dict], List['commands._Command']]
                 loaded = Unpickler(f, document.scheme()).load()
         except Exception:
             log.error("Could not load swp file: %r", filename, exc_info=True)
@@ -1743,8 +1742,10 @@ class CanvasMainWindow(QMainWindow):
 
         document.undoCommandAdded.disconnect(self.save_swp)
 
-        commands = loaded[1]
-        for c in commands:
+        commands_ = loaded[1]
+        commands_ = [commands.undocommand_reconstruct(c) for c in commands_]
+
+        for c in commands_:
             undoStack.push(c)
 
         properties = loaded[0]
