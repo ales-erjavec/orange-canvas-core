@@ -34,9 +34,9 @@ from AnyQt.QtGui import (
     QWhatsThisClickedEvent, QKeyEvent, QPalette
 )
 from AnyQt.QtCore import (
-    Qt, QObject, QEvent, QSignalMapper, QCoreApplication, QPointF,
-    QMimeData, Slot)
-from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
+    Qt, QObject, QEvent, QSignalMapper, QCoreApplication, QPointF, QMimeData
+)
+from AnyQt.QtCore import Property, Signal, Slot
 
 from orangecanvas.document.commands import UndoCommand
 from .interactions import DropHandler

@@ -10,10 +10,11 @@ from typing import Union
 from xml.sax.saxutils import escape
 from urllib.parse import urlencode
 
+import AnyQt
 from AnyQt.QtWidgets import QAction
 from AnyQt.QtGui import QStandardItemModel, QStandardItem, QColor, QBrush
 from AnyQt.QtCore import QObject, Qt
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 from ..utils import type_str
 from .discovery import WidgetDiscovery

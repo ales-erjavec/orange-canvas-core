@@ -10,7 +10,7 @@ from AnyQt.QtGui import QCursor, QIcon, QKeySequence, QTransform, QWheelEvent
 from AnyQt.QtCore import (
     Qt, QRect, QSize, QRectF, QPoint, QTimer, QEvent, QPointF
 )
-from AnyQt.QtCore import Property, pyqtSignal as Signal
+from AnyQt.QtCore import Property, Signal
 
 from orangecanvas.utils import is_event_source_mouse
 

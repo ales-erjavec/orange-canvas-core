@@ -14,7 +14,7 @@ from collections import namedtuple
 from collections.abc import MutableMapping
 
 from AnyQt.QtCore import QObject, QEvent, QCoreApplication, QSettings
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 
 log = logging.getLogger(__name__)

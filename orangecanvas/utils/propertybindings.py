@@ -14,9 +14,9 @@ from operator import add
 
 from AnyQt.QtCore import QObject, QEvent, QMetaProperty
 
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from AnyQt.QtCore import Signal, Slot
 
-from typing import Optional, Any, List, Dict, Tuple
+from typing import Optional, Any, List, Dict
 
 
 def find_meta_property(obj, name):

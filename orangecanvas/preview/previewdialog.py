@@ -7,7 +7,7 @@ from AnyQt.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QDialogButtonBox, QSizePolicy
 )
 from AnyQt.QtCore import Qt, QStringListModel, QAbstractItemModel
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 from . import previewbrowser
 

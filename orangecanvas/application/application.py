@@ -10,8 +10,7 @@ from typing import Optional, List, Sequence
 import AnyQt
 from AnyQt.QtWidgets import QApplication
 from AnyQt.QtCore import (
-    Qt, QUrl, QEvent, QSettings, QLibraryInfo, pyqtSignal as Signal,
-    QT_VERSION_INFO
+    Qt, QUrl, QEvent, QSettings, QLibraryInfo, Signal, QT_VERSION_INFO
 )
 
 from orangecanvas.utils.after_exit import run_after_exit

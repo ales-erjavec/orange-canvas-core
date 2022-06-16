@@ -17,7 +17,7 @@ from AnyQt.QtGui import QStandardItemModel
 from AnyQt.QtCore import (
     Qt, QEvent, QModelIndex, QAbstractItemModel, QAbstractProxyModel, QObject
 )
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 __all__ = [
     "ToolTree", "FlattenedTreeItemModel"

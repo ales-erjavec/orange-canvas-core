@@ -14,7 +14,7 @@ from xml.etree.ElementTree import TreeBuilder, Element
 from weakref import ref
 from concurrent.futures import Future
 
-from AnyQt.QtCore import QObject, QUrl, QSettings, pyqtSlot
+from AnyQt.QtCore import QObject, QUrl, QSettings, Slot
 from AnyQt.QtNetwork import (
     QNetworkAccessManager, QNetworkDiskCache, QNetworkRequest, QNetworkReply
 )
@@ -101,7 +101,7 @@ class BaseInventoryProvider(HelpProvider):
                 self._load_inventory(f)
                 self._reply_f.set_result(None)
 
-    @pyqtSlot()
+    @Slot()
     def _on_finished(self):
         # type: () -> None
         assert self._reply.isFinished()

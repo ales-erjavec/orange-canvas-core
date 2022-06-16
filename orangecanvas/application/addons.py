@@ -40,7 +40,7 @@ from AnyQt.QtCore import (
     Qt, QObject, QSize, QTimer, QThread,
     QSettings, QStandardPaths, QEvent, QAbstractItemModel, QModelIndex,
 )
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from AnyQt.QtCore import Signal, Slot
 
 from orangecanvas.utils import unique, name_lookup, markup, qualified_name
 from orangecanvas.utils.qobjref import qobjref

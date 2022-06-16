@@ -14,7 +14,7 @@ from AnyQt.QtGui import (
 )
 
 from AnyQt.QtCore import Qt, QRect, QSize, QPoint
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 from ..canvas.items.utils import radial_gradient
 from ..registry import NAMED_COLORS

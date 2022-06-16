@@ -15,7 +15,7 @@ from AnyQt.QtGui import (
     QTextDocumentFragment
 )
 from AnyQt.QtCore import Qt, QObject, QCoreApplication, QThread, QSize
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
+from AnyQt.QtCore import Signal, Slot
 
 from orangecanvas.gui.utils import update_char_format
 from orangecanvas.utils import findf

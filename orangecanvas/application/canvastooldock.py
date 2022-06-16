@@ -16,7 +16,7 @@ from AnyQt.QtCore import (
     QAbstractItemModel, QModelIndex, QPersistentModelIndex, QEventLoop,
     QMimeData
 )
-from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
+from AnyQt.QtCore import Property, Signal
 
 from ..gui.toolgrid import ToolGrid
 from ..gui.toolbar import DynamicResizeToolBar

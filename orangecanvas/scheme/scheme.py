@@ -16,7 +16,7 @@ import typing
 from typing import List, Tuple, Optional, Set, Dict, Any, Mapping
 
 from AnyQt.QtCore import QObject, QCoreApplication
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from AnyQt.QtCore import Signal, Property
 
 from .node import SchemeNode
 from .link import SchemeLink, compatible_channels, _classify_connection

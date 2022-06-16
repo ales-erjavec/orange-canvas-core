@@ -16,7 +16,7 @@ from AnyQt.QtWidgets import (
 )
 from AnyQt.QtGui import QPixmap, QPainter
 from AnyQt.QtCore import Qt, QPoint, QRect, QSize, QPropertyAnimation
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from AnyQt.QtCore import Signal, Property
 
 from .utils import updates_disabled
 

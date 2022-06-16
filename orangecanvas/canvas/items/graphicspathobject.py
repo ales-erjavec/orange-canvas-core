@@ -7,7 +7,7 @@ from AnyQt.QtGui import (
     QPainterPath, QPainterPathStroker, QBrush, QPen, QPainter, QColor
 )
 from AnyQt.QtCore import Qt, QPointF, QRectF
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 
 class GraphicsPathObject(QGraphicsObject):

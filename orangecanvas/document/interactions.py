@@ -29,7 +29,7 @@ from AnyQt.QtCore import (
     Qt, QObject, QCoreApplication, QSizeF, QPointF, QRect, QRectF, QLineF,
     QPoint, QMimeData,
 )
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 from orangecanvas.document.commands import UndoCommand
 from .usagestatistics import UsageStatistics

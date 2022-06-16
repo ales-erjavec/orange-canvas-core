@@ -7,7 +7,7 @@ from AnyQt.QtWidgets import QGraphicsItem, QGraphicsObject
 from AnyQt.QtGui import QBrush, QPainterPath
 from AnyQt.QtCore import Qt, QPointF, QLineF, QRectF, QMargins, QEvent
 
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from AnyQt.QtCore import Signal, Property
 
 
 from .graphicspathobject import GraphicsPathObject

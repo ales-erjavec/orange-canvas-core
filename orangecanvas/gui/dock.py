@@ -13,7 +13,7 @@ from AnyQt.QtWidgets import (
 )
 from AnyQt.QtGui import QIcon, QTransform
 from AnyQt.QtCore import Qt, QEvent, QObject
-from AnyQt.QtCore import pyqtProperty as Property, pyqtSignal as Signal
+from AnyQt.QtCore import Property, Signal
 
 from .stackedwidget import AnimatedStackedWidget
 

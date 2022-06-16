@@ -1,9 +1,6 @@
 """
 A LineEdit class with a button on left/right side.
 """
-
-from collections import namedtuple
-
 from typing import Any, Optional, List, NamedTuple
 
 from AnyQt.QtWidgets import (
@@ -12,7 +9,7 @@ from AnyQt.QtWidgets import (
 )
 from AnyQt.QtGui import QPaintEvent, QPainter, QColor
 from AnyQt.QtCore import Qt, QSize, QRect
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from AnyQt.QtCore import Signal, Property
 
 from orangecanvas.gui.utils import innerShadowPixmap
 

@@ -24,7 +24,7 @@ from typing import (
 )
 
 from AnyQt.QtCore import QObject, QTimer, QSettings, QEvent
-from AnyQt.QtCore import pyqtSignal, pyqtSlot as Slot
+from AnyQt.QtCore import Signal as _Signal, Slot
 
 from . import LinkEvent
 from ..utils import unique, mapping_get, group_by_all
@@ -177,24 +177,24 @@ class SignalManager(QObject):
     Processing = RuntimeState.Processing
 
     #: Emitted when the state of the signal manager changes.
-    stateChanged = pyqtSignal(int)
+    stateChanged = _Signal(int)
     #: Emitted when signals are added to the queue.
-    updatesPending = pyqtSignal()
+    updatesPending = _Signal()
     #: Emitted right before a `SchemeNode` instance has its inputs updated.
-    processingStarted = pyqtSignal([], [SchemeNode])
+    processingStarted = _Signal([], [SchemeNode])
     #: Emitted right after a `SchemeNode` instance has had its inputs updated.
-    processingFinished = pyqtSignal([], [SchemeNode])
+    processingFinished = _Signal([], [SchemeNode])
     #: Emitted when `SignalManager`'s runtime state changes.
-    runtimeStateChanged = pyqtSignal(int)
+    runtimeStateChanged = _Signal(int)
 
     #: Emitted when the execution finishes (there are no more nodes that
     #: need to run). Note: the nodes can activate again due to user
     #: interaction or other scheduled events, i.e. finished is not a definitive
     #: state. Use at your own discretion.
-    finished = pyqtSignal()
+    finished = _Signal()
     #: Emitted when starting initial execution and when resuming after already
     #: emitting `finished`.
-    started = pyqtSignal()
+    started = _Signal()
 
     def __init__(self, parent=None, *, max_running=None, **kwargs):
         # type: (Optional[QObject], Optional[int], Any) -> None

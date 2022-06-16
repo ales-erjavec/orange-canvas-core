@@ -21,7 +21,7 @@ from AnyQt.QtCore import (
     QParallelAnimationGroup, QT_VERSION
 )
 from AnyQt.QtSvg import QSvgGenerator
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 from ..registry import (
     WidgetRegistry, WidgetDescription, CategoryDescription,

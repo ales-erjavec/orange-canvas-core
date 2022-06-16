@@ -5,7 +5,7 @@ from typing import Optional, Any
 
 from AnyQt.QtWidgets import QWidget, QStyleOption
 from AnyQt.QtGui import QPalette, QPainter, QBitmap, QPaintEvent
-from AnyQt.QtCore import Qt, pyqtProperty as Property
+from AnyQt.QtCore import Qt, Property
 
 from .utils import is_transparency_supported, StyledWidget_paintEvent
 

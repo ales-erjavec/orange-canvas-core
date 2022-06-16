@@ -32,7 +32,7 @@ from AnyQt.QtCore import (
     QModelIndex, QTimer, QRegularExpression, QSortFilterProxyModel,
     QItemSelectionModel, QAbstractItemModel, QSettings
 )
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from AnyQt.QtCore import Signal, Property
 
 from .usagestatistics import UsageStatistics
 from ..gui.framelesswindow import FramelessWindow

@@ -1,5 +1,5 @@
 from typing import TypeVar, Callable, overload, Optional
-from AnyQt.QtCore import Qt, QObject, Signal, pyqtBoundSignal as BoundSignal
+from AnyQt.QtCore import Qt, QObject, Signal, BoundSignal
 
 from functools import wraps
 

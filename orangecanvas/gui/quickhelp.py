@@ -3,7 +3,7 @@ from typing import Any
 from AnyQt.QtWidgets import QTextBrowser
 from AnyQt.QtGui import QStatusTipEvent, QWhatsThisClickedEvent
 from AnyQt.QtCore import QObject, QCoreApplication, QEvent, QTimer, QUrl
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 
 class QuickHelp(QTextBrowser):

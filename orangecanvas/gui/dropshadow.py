@@ -19,7 +19,7 @@ from AnyQt.QtGui import (
 from AnyQt.QtCore import (
     Qt, QPoint, QPointF, QRect, QRectF, QSize, QSizeF, QEvent, QObject
 )
-from AnyQt.QtCore import pyqtProperty as Property
+from AnyQt.QtCore import Property
 
 
 def render_drop_shadow_frame(pixmap, shadow_rect, shadow_color,

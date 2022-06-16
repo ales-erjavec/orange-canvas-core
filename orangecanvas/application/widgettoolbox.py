@@ -20,7 +20,7 @@ from AnyQt.QtCore import (
     Qt, QObject, QAbstractItemModel, QModelIndex, QSize, QEvent, QMimeData,
     QByteArray, QDataStream, QIODevice, QPoint
 )
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from AnyQt.QtCore import Signal, Property
 
 from ..gui.toolbox import ToolBox
 from ..gui.toolgrid import ToolGrid

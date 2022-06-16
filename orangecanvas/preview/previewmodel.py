@@ -8,7 +8,7 @@ from AnyQt.QtGui import (
     QStandardItemModel, QStandardItem, QIcon
 )
 from AnyQt.QtCore import Qt, QTimer
-from AnyQt.QtCore import pyqtSlot as Slot
+from AnyQt.QtCore import Slot
 
 from ..gui.svgiconengine import SvgIconEngine
 from . import scanner

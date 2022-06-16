@@ -14,9 +14,7 @@ from AnyQt.QtGui import (
 from AnyQt.QtCore import (
     Qt, QPointF, QSizeF, QRectF, QLineF, QEvent, QMetaObject, QObject
 )
-from AnyQt.QtCore import (
-    pyqtSignal as Signal, pyqtProperty as Property, pyqtSlot as Slot
-)
+from AnyQt.QtCore import Signal, Property, Slot
 
 from orangecanvas.utils import markup
 from .graphicspathobject import GraphicsPathObject

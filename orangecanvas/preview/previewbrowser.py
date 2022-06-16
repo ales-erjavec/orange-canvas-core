@@ -10,7 +10,7 @@ from typing import Optional, Any
 from AnyQt.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from AnyQt.QtSvg import QSvgWidget
 from AnyQt.QtCore import Qt, QByteArray, QModelIndex, QAbstractItemModel
-from AnyQt.QtCore import pyqtSignal as Signal
+from AnyQt.QtCore import Signal
 
 from ..gui.dropshadow import DropShadowFrame
 from ..gui.iconview import LinearIconView

@@ -9,7 +9,7 @@ import warnings
 from typing import Optional, Dict, Any, List, Tuple, Iterable, Union
 
 from AnyQt.QtCore import QObject, QCoreApplication
-from AnyQt.QtCore import pyqtSignal as Signal, pyqtProperty as Property
+from AnyQt.QtCore import Signal, Property
 
 from ..registry import WidgetDescription, InputSignal, OutputSignal
 from .events import NodeEvent
