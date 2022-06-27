@@ -49,6 +49,11 @@ jobs:
             python-version: "3.10"
             test-env: "PyQt6~=6.2.3 PyQt6-Qt6~=6.2.3"
 
+          - os: ubuntu-20.04
+            python-version: "3.10"
+            test-env: "PySide2~=5.15.0"
+
+
           # macOS
           - os: macos-11
             python-version: 3.7
@@ -69,6 +74,10 @@ jobs:
           - os: macos-12
             python-version: "3.10"
             test-env: "PyQt6~=6.2.3 PyQt6-Qt6~=6.2.3"
+
+          - os: macos-11
+            python-version: "3.10"
+            test-env: "PySide2~=5.15.0"
 
           # Windows
           - os: windows-2019
@@ -94,6 +103,10 @@ jobs:
           - os: windows-2019
             python-version: "3.10"
             test-env: "PyQt6~=6.2.3 PyQt6-Qt6~=6.2.3"
+
+          - os: windows-2019
+            python-version: "3.10"
+            test-env: "PySide2~=5.15.0"
 
     steps:
       - uses: actions/checkout@v2
