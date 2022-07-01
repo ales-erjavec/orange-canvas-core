@@ -63,6 +63,12 @@ class QtRegistryHandler(QObject, WidgetDiscovery.RegistryHandler):
     # Found a category with description
     found_category = Signal(CategoryDescription)
 
+    if AnyQt.USED_API not in ("pyqt5", "pyqt6"):
+        def __init__(self, registry, *args, **kwargs):
+            QObject.__init__(self, *args, **kwargs)
+            WidgetDiscovery.RegistryHandler.__init__(self, registry)
+            # self.registry = registry
+
     def handle_category(self, category):
         super().handle_category(category)
         self.found_category.emit(category)
