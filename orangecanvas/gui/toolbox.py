@@ -333,10 +333,9 @@ class ToolBox(QFrame):
         # The tabs/contents are placed in the layout inside this widget
         self.__contents = QWidget(self.__scrollArea,
                                   objectName="toolbox-contents")
-        self.__contentsLayout = _ToolBoxLayout(
-            sizeConstraint=_ToolBoxLayout.SetMinAndMaxSize,
-            spacing=0
-        )
+        self.__contentsLayout = _ToolBoxLayout()
+        self.__contentsLayout.setSizeConstraint(_ToolBoxLayout.SetMinAndMaxSize)
+        self.__contentsLayout.setSpacing(0)
         self.__contentsLayout.setContentsMargins(0, 0, 0, 0)
         self.__contents.setLayout(self.__contentsLayout)
 
