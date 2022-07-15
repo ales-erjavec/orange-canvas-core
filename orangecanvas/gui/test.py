@@ -46,6 +46,8 @@ class QCoreAppTestCase(unittest.TestCase):
 
     def tearDown(self):
         super(QCoreAppTestCase, self).tearDown()
+        gc.collect()
+        QTest.qWait(0)
 
     @classmethod
     def tearDownClass(cls):
