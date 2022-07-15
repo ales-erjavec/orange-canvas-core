@@ -149,6 +149,8 @@ class TestOutputView(QAppTestCase):
         res.wait()
         pool.close()
 
+    @skipIf(lambda: AnyQt.USED_API == "PySide2",
+            "PySide2 in use (causes segfaults)")
     def test_clone(self):
         doc = TerminalTextDocument()
         writer = TextStream()
