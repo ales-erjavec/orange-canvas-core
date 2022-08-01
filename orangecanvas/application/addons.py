@@ -41,9 +41,9 @@ from AnyQt.QtCore import (
     QSettings, QStandardPaths, QEvent, QAbstractItemModel, QModelIndex,
 )
 from AnyQt.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
-from AnyQt import sip
 
 from orangecanvas.utils import unique, name_lookup, markup, qualified_name
+from orangecanvas.utils.qobjref import qobjref
 from orangecanvas.utils.shtools import python_process, create_process
 from ..utils.pkgmeta import get_dist_meta, parse_meta
 from ..utils.qinvoke import qinvoke
@@ -59,6 +59,21 @@ log = logging.getLogger(__name__)
 
 A = TypeVar("A")
 B = TypeVar("B")
+
+
+def keepref(obj):
+    keepref.refs.append(qobjref(obj))
+
+
+def clearref(obj):
+    for i in range(len(keepref.refs)):
+        r = keepref.refs[i]
+        if r() is obj:
+            del keepref.refs[i]
+            return
+
+
+keepref.refs = []
 
 
 def normalize_name(name):
@@ -1073,9 +1088,9 @@ class AddonManagerDialog(QDialog):
             self.__thread = QThread(
                 objectName=qualified_name(type(self)) + "::InstallerThread",
             )
-            # transfer ownership to c++; the instance is (deferred) deleted
-            # from the finished signal (keep alive until then).
-            sip.transferto(self.__thread, None)
+            # the instance is (deferred) deleted from the finished signal
+            # (keep alive until then).
+            keepref(self.__thread)
             self.__thread.finished.connect(self.__thread.deleteLater)
             self.__installer.moveToThread(self.__thread)
             self.__installer.finished.connect(self.__on_installer_finished)
