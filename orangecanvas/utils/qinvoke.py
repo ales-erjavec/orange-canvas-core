@@ -104,7 +104,9 @@ def qinvoke(func: Callable = None, context: QObject = None, type=Qt.QueuedConnec
         # caller 'lives' in context's thread. If context is deleted so is the
         # caller (child objects are deleted before parents). This is used to
         # achieve (of fake) connection auto-disconnect.
-        caller = _InvokeCaller(context)
+        caller = _InvokeCaller()
+        caller.moveToThread(context.thread())
+        caller.setParent(context)
 
         def call_in_context(args, kwargs):
             func(*args, *kwargs)
