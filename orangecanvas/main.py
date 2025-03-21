@@ -224,7 +224,7 @@ class Main:
             if not paths:
                 self.show_welcome_screen(mainwindow)
             else:
-                self.open_files(paths)
+                QTimer.singleShot(0, lambda: self.open_files(paths))
 
             def open_request(url):
                 path = url.toLocalFile()
@@ -242,11 +242,9 @@ class Main:
         return rv
 
     def open_files(self, paths):
-        _windows = [self.window]
-
         def _window():
-            if _windows:
-                return _windows.pop(0)
+            if self.window.is_transient():
+                return self.window
             else:
                 return self.window.create_new_window()
 
