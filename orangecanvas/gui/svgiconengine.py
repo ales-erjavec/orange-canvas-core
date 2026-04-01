@@ -217,6 +217,9 @@ TEMPLATE = """
 .ColorScheme-Background {{
     color: {background};
 }}
+.ColorScheme-ViewBackground {{
+    color: {base};
+}}
 .ColorScheme-Highlight {{
     color: {highlight};
 }}
@@ -228,6 +231,15 @@ TEMPLATE = """
 }}
 .ColorScheme-Complement {{
     color: {complement};
+}}
+.ColorScheme-PositiveText {{
+    color:#27ae60;
+}}
+.ColorScheme-NeutralText {{
+    color:#f67400;
+}}
+.ColorScheme-NegativeText {{
+    color:#da4453;
 }}
 """
 
@@ -252,6 +264,7 @@ def render_svg_color_scheme_css(palette: QPalette, state: QIcon.State) -> str:
     selected = state == QIcon.Selected
     text = QPalette.HighlightedText if selected else QPalette.WindowText
     background = QPalette.Highlight if selected else QPalette.Window
+    base = QPalette.Base
     hligh = QPalette.HighlightedText if selected else QPalette.Highlight
     lum = luminance(palette.color(background))
     complement = QColor(Qt.white) if lum > 0.5 else QColor(Qt.black)
@@ -259,6 +272,7 @@ def render_svg_color_scheme_css(palette: QPalette, state: QIcon.State) -> str:
     return TEMPLATE.format(
         text=_hexrgb_solid(palette.color(text), palette.color(background)),
         background=_hexrgb_solid(palette.color(background)),
+        base=_hexrgb_solid(palette.color(base)),
         highlight=_hexrgb_solid(palette.color(hligh)),
         disabled_text=_hexrgb_solid(palette.color(QPalette.Disabled, text),
                                     palette.color(QPalette.Disabled, background)),
