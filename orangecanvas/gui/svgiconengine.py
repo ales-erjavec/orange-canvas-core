@@ -223,7 +223,7 @@ TEMPLATE = """
 .ColorScheme-Highlight {{
     color: {highlight};
 }}
-.ColorScheme-Disabled-Text {{
+.ColorScheme-DisabledText {{
     color: {disabled_text};
 }}
 .ColorScheme-Contrast {{
