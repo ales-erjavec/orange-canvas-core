@@ -5,6 +5,7 @@ Orange Canvas Resource Loader
 import os
 import glob
 import pkgutil
+import re
 from typing import Tuple, Dict, Optional, List, IO
 
 from AnyQt.QtCore import QObject
@@ -172,14 +173,13 @@ class icon_loader(resource_loader):
     def icon_glob(self, path):
         # type: (str) -> List[str]
         name, ext = os.path.splitext(path)
-        pattern = name + "_*" + ext
-        return glob.glob(pattern)
+        pattern1 = name + "_*" + ext
+        pattern2 = name + "-symbolic" + ext
+        return glob.glob(pattern1) + glob.glob(pattern2)
 
     def is_icon_glob(self, path):
         # type: (str) -> bool
-        name, ext = os.path.splitext(path)
-        pattern = name + "_*" + ext
-        return bool(glob.glob(pattern))
+        return bool(self.icon_glob(path))
 
     def get(self, name, default=None):
         # type: (str, Optional[str]) -> QIcon
@@ -218,7 +218,8 @@ class icon_loader(resource_loader):
             if cache_key not in self._icon_cache:
                 for path in icons:
                     icon.addFile(path)
-                icon = QIcon(SymbolIconEngine(icon))
+                if len(icons) == 1 and re.match(r".*-symbolic\.\w+$", icons[0]):
+                    icon = QIcon(SymbolIconEngine(icon))
                 self._icon_cache[cache_key] = icon
             else:
                 icon = self._icon_cache[cache_key]
